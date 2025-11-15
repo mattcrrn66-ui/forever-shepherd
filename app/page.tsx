@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, FormEvent } from "react";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { createClient } from "../lib/supabaseClient";
 
@@ -572,13 +573,13 @@ export default function TokenHubPage() {
                         <img
                           src={t.image_url}
                           alt={t.name || ""}
-                          style({
-                          width: 40,
-                          height: 40,
-                          borderRadius: 999,
-                          objectFit: "cover",
-                          border: "1px solid #374151",
-                        }}
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 999,
+                            objectFit: "cover",
+                            border: "1px solid #374151",
+                          }}
                         />
                       ) : (
                         <div
@@ -694,7 +695,7 @@ export default function TokenHubPage() {
   );
 }
 
-const inputStyle: React.CSSProperties = {
+const inputStyle: CSSProperties = {
   width: "100%",
   padding: "8px 10px",
   borderRadius: 8,
@@ -704,7 +705,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 13,
 };
 
-const linkPillStyle: React.CSSProperties = {
+const linkPillStyle: CSSProperties = {
   padding: "4px 8px",
   borderRadius: 999,
   border: "1px solid #374151",
