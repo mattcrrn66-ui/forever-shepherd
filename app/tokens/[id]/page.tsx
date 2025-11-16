@@ -1,7 +1,22 @@
 // app/tokens/[id]/page.tsx
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabaseClient";
 import TokenPortal from "@/components/TokenPortal";
+
+type Token = {
+  id: string;
+  name: string;
+  symbol: string;
+  description: string | null;
+  image_url: string | null;
+  telegram_url: string | null;
+  x_url: string | null;
+  website_url: string | null;
+  created_at: string;
+};
 
 interface TokenPageProps {
   params: { id: string };
@@ -9,23 +24,58 @@ interface TokenPageProps {
 
 const supabase = createClient();
 
-export default async function TokenPage({ params }: TokenPageProps) {
+export default function TokenPage({ params }: TokenPageProps) {
   const tokenId = decodeURIComponent(params.id);
 
-  const { data: token, error } = await supabase
-    .from("tokens")
-    .select("*")
-    .eq("id", tokenId)
-    .single();
+  const [token, setToken] = useState<Token | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (error || !token) {
-    console.error(error);
+  useEffect(() => {
+    const fetchToken = async () => {
+      setLoading(true);
+      setError(null);
+
+      const { data, error } = await supabase
+        .from("tokens")
+        .select("*")
+        .eq("id", tokenId)
+        .single();
+
+      if (error || !data) {
+        console.error("Error fetching token", error);
+        setError(error?.message || "Token not found.");
+        setToken(null);
+      } else {
+        setToken(data as Token);
+      }
+
+      setLoading(false);
+    };
+
+    fetchToken();
+  }, [tokenId]);
+
+  if (loading) {
     return (
       <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
-        <div className="text-center space-y-3">
+        <p className="text-sm text-slate-300">Loading token portal…</p>
+      </main>
+    );
+  }
+
+  if (error || !token) {
+    return (
+      <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
+        <div className="text-center space-y-3 max-w-md px-4">
           <p className="text-lg font-semibold">Token not found.</p>
+          <p className="text-xs text-slate-400">
+            {error
+              ? `Supabase says: ${error}`
+              : "The portal couldn't find a token with this id."}
+          </p>
           <Link
-            href="/"
+            href="/dev-hub"
             className="text-sm text-cyan-400 hover:text-cyan-300 underline"
           >
             ← Back to Cyber Dev Hub
@@ -126,7 +176,7 @@ export default async function TokenPage({ params }: TokenPageProps) {
           </div>
         </section>
 
-        {/* Community Portal */}
+        {/* Community Portal (message board) */}
         <TokenPortal
           tokenId={token.id}
           name={token.name}
