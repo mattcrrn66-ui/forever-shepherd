@@ -11,33 +11,33 @@ type Activity = {
 const activityFeed: Activity[] = [
   {
     type: "token",
-    title: "Cyber Dev Token launched",
+    title: "Cyber Dev Token ($CDT) launched",
     description:
-      "CDT goes live as the core token behind the Cyber Dev ecosystem: tools for creators, devs & communities on Solana.",
+      "CDT is live as the core token behind the Cyber Dev ecosystem — focused on builders, not hype.",
     timeAgo: "Just now",
     link: "https://cyberdevtoken.com",
   },
   {
     type: "update",
-    title: "Roadmap and Whitepaper published",
+    title: "Whitepaper v1.0 + Roadmap published",
     description:
-      "Initial public roadmap and whitepaper v1.0 are live, outlining the Roundtable vision and build phases.",
+      "The initial Cyber Dev Token whitepaper and roadmap are online, outlining the Roundtable vision, phases, and builder-first philosophy.",
     timeAgo: "Today",
-    link: "/roadmap",
+    link: "/whitepaper",
   },
   {
     type: "dev",
     title: "Developer Hub scaffolded",
     description:
-      "The Dev Hub page is online as a home for builder profiles and future verification + contribution tracking.",
+      "The Dev Hub page is live as the future home for builder profiles, reputation, and collaboration tools.",
     timeAgo: "Today",
     link: "/dev-hub",
   },
   {
     type: "token",
-    title: "Token Directory prototype",
+    title: "Token Directory wired up",
     description:
-      "The Token Directory page is live with placeholder entries, ready to connect to the Tokens table in Supabase.",
+      "The Token Directory now reads tokens directly from the Supabase Tokens table (once populated), turning Cyber Dev into a live index.",
     timeAgo: "Today",
     link: "/directory",
   },
@@ -64,9 +64,8 @@ export default function CommunityPage() {
             Community Feed
           </h1>
           <p className="mt-3 text-lg text-slate-300">
-            A simple activity log for what’s happening around Cyber Dev Token —
-            launches, updates, tools and builder moves. Later this will be powered
-            by live platform events.
+            A simple activity log for what&apos;s happening around Cyber Dev Token —
+            launches, updates, tools and builder moves.
           </p>
         </header>
 
@@ -121,9 +120,9 @@ export default function CommunityPage() {
         {/* Note */}
         <section className="mt-10 border-t border-slate-800 pt-5">
           <p className="text-xs text-slate-500">
-            Over time, this feed can be wired into real events: token profile
-            creation, dev verifications, roadmap updates, governance votes, and
-            other Roundtable activity.
+            Later on, this feed can be wired into real events: token profile creation,
+            dev verifications, roadmap changes, and Roundtable activity powered by
+            $CDT.
           </p>
         </section>
       </div>
