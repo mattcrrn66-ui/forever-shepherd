@@ -12,6 +12,7 @@ const supabase = createClient();
 export default async function TokenPage({ params }: TokenPageProps) {
   const tokenId = params.id;
 
+  // Fetch the token from Supabase (no TypeScript generics here)
   const { data: token, error } = await supabase
     .from("tokens")
     .select("*")
@@ -127,7 +128,11 @@ export default async function TokenPage({ params }: TokenPageProps) {
         </section>
 
         {/* Community Portal */}
-        <TokenPortal tokenId={tokenId} />
+        <TokenPortal
+          tokenId={tokenId}
+          name={token.name}
+          symbol={token.symbol}
+        />
       </div>
     </main>
   );
