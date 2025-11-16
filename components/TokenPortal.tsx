@@ -27,7 +27,7 @@ export default function TokenPortal({ tokenId, name, symbol }: TokenPortalProps)
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const [role, setRole] = useState<"dev" | "mod" | "holder">("holder");
+  // 🔒 No role picker anymore – everyone posts as holder
   const [handle, setHandle] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [text, setText] = useState("");
@@ -73,7 +73,7 @@ export default function TokenPortal({ tokenId, name, symbol }: TokenPortalProps)
     const { error } = await supabase.from("token_portal_messages").insert([
       {
         token_id: tokenId,
-        role,
+        role: "holder", // 🔒 force all new messages to holder for now
         handle: handle || null,
         display_name: displayName || null,
         message: trimmed,
@@ -101,8 +101,10 @@ export default function TokenPortal({ tokenId, name, symbol }: TokenPortalProps)
             {name} Portal
           </h2>
           <p className="text-xs text-slate-400">
-            Community room for <span className="font-mono">{symbol}</span>. Dev
-            updates, holder chat, coordination — all here.
+            Community room for <span className="font-mono">{symbol}</span>.{" "}
+            For now, everyone posts as{" "}
+            <span className="font-semibold text-slate-200">holder</span> to
+            prevent fake dev/mod messages.
           </p>
         </div>
       </div>
@@ -119,18 +121,10 @@ export default function TokenPortal({ tokenId, name, symbol }: TokenPortalProps)
         )}
 
         <div className="flex flex-wrap items-center gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="text-slate-400">I&apos;m posting as</span>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
-              className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-100 outline-none focus:border-cyan-500"
-            >
-              <option value="dev">Dev</option>
-              <option value="mod">Mod</option>
-              <option value="holder">Holder</option>
-            </select>
-          </div>
+          <span className="text-slate-400">
+            Posting as{" "}
+            <span className="font-semibold text-slate-200">holder</span>
+          </span>
 
           <input
             type="text"
@@ -187,42 +181,48 @@ export default function TokenPortal({ tokenId, name, symbol }: TokenPortalProps)
         )}
 
         <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs"
-            >
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                      m.role === "dev"
-                        ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-                        : m.role === "mod"
-                        ? "bg-violet-500/20 text-violet-300 border border-violet-500/40"
-                        : "bg-slate-700/40 text-slate-200 border border-slate-600/60"
-                    }`}
-                  >
-                    {m.role || "holder"}
+          {messages.map((m) => {
+            const role = m.role || "holder";
+
+            return (
+              <div
+                key={m.id}
+                className="rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs"
+              >
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
+                        role === "dev"
+                          ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                          : role === "mod"
+                          ? "bg-violet-500/20 text-violet-300 border border-violet-500/40"
+                          : "bg-slate-700/40 text-slate-200 border border-slate-600/60"
+                      }`}
+                    >
+                      {role}
+                    </span>
+                    {m.display_name && (
+                      <span className="text-slate-100 font-medium">
+                        {m.display_name}
+                      </span>
+                    )}
+                    {m.handle && (
+                      <span className="text-slate-400 font-mono text-[11px]">
+                        {m.handle}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-500">
+                    {new Date(m.created_at).toLocaleString()}
                   </span>
-                  {m.display_name && (
-                    <span className="text-slate-100 font-medium">
-                      {m.display_name}
-                    </span>
-                  )}
-                  {m.handle && (
-                    <span className="text-slate-400 font-mono text-[11px]">
-                      {m.handle}
-                    </span>
-                  )}
                 </div>
-                <span className="text-[10px] text-slate-500">
-                  {new Date(m.created_at).toLocaleString()}
-                </span>
+                <p className="text-slate-100 whitespace-pre-wrap">
+                  {m.message}
+                </p>
               </div>
-              <p className="text-slate-100 whitespace-pre-wrap">{m.message}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </section>
