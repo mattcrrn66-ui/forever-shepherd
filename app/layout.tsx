@@ -1,11 +1,10 @@
 // app/layout.tsx
 import "./globals.css";
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Cyber Dev Token Hub",
-  description: "Create and explore token profiles.",
+  title: "Cyber Dev Token • $CDT",
+  description: "Building tools for creators, devs & communities on Solana.",
 };
 
 export default function RootLayout({
@@ -15,43 +14,62 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-950 text-slate-50">
-        <header className="border-b border-slate-800">
-          <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="h-8 w-8 rounded-full bg-cyan-500/20 border border-cyan-400/60 flex items-center justify-center text-xs font-bold text-cyan-300">
-                CDT
+      <body className="bg-slate-950 text-slate-100">
+        {/* Site Shell */}
+        <div className="min-h-screen flex flex-col">
+
+          {/* Header / Nav */}
+          <header className="border-b border-slate-800 bg-slate-950/90 backdrop-blur">
+            <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+              {/* Brand */}
+              <a href="/" className="flex items-baseline gap-2">
+                <span className="text-xs uppercase tracking-[0.25em] text-cyan-400">
+                  Cyber Dev
+                </span>
+                <span className="text-sm text-slate-400 hidden sm:inline">
+                  $CDT
+                </span>
+              </a>
+
+              {/* Nav Links */}
+              <nav className="flex items-center gap-4 text-sm">
+                <a
+                  href="/"
+                  className="text-slate-300 hover:text-cyan-300 transition-colors"
+                >
+                  Home
+                </a>
+                <a
+                  href="/whitepaper"
+                  className="text-slate-300 hover:text-cyan-300 transition-colors"
+                >
+                  Whitepaper
+                </a>
+                <a
+                  href="/roadmap"
+                  className="text-slate-300 hover:text-cyan-300 transition-colors"
+                >
+                  Roadmap
+                </a>
+              </nav>
+            </div>
+          </header>
+
+          {/* Page content */}
+          <main className="flex-1">
+            {children}
+          </main>
+
+          {/* Footer (simple) */}
+          <footer className="border-t border-slate-800 mt-8">
+            <div className="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex justify-between">
+              <span>© {new Date().getFullYear()} Cyber Dev Token · $CDT</span>
+              <span className="hidden sm:inline">
+                Tools for creators, devs & communities on Solana.
               </span>
-              <div className="flex flex-col">
-                <span className="text-sm font-semibold tracking-wide">
-                  Cyber Dev Token
-                </span>
-                <span className="text-xs text-slate-400">
-                  The Roundtable for Builders
-                </span>
-              </div>
-            </Link>
-
-            <nav className="flex items-center gap-4 text-sm">
-              <Link
-                href="/"
-                className="text-slate-300 hover:text-cyan-300 transition-colors"
-              >
-                Home
-              </Link>
-              <Link
-                href="/whitepaper"
-                className="text-slate-300 hover:text-cyan-300 transition-colors"
-              >
-                Whitepaper
-              </Link>
-            </nav>
-          </div>
-        </header>
-
-        <main className="max-w-5xl mx-auto px-4 py-6">
-          {children}
-        </main>
+            </div>
+          </footer>
+        </div>
       </body>
     </html>
   );
