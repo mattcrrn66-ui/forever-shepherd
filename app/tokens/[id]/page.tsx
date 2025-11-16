@@ -9,52 +9,17 @@ interface TokenPageProps {
 
 const supabase = createClient();
 
-async function fetchTokenByAnyKey(rawParam: string) {
-  const tokenKey = decodeURIComponent(rawParam);
+export default async function TokenPage({ params }: TokenPageProps) {
+  const tokenId = decodeURIComponent(params.id);
 
-  // 1) Try exact ID match
-  const byId = await supabase
+  const { data: token, error } = await supabase
     .from("tokens")
     .select("*")
-    .eq("id", tokenKey)
+    .eq("id", tokenId)
     .single();
 
-  if (!byId.error && byId.data) {
-    return byId.data;
-  }
-
-  // 2) Try exact SYMBOL match (case-insensitive)
-  const bySymbol = await supabase
-    .from("tokens")
-    .select("*")
-    .ilike("symbol", tokenKey);
-
-  if (!bySymbol.error && bySymbol.data && bySymbol.data.length > 0) {
-    return bySymbol.data[0];
-  }
-
-  // 3) Try NAME match (handle slugs like "cyber-dev-token")
-  const nameGuess = tokenKey.replace(/-/g, " ");
-
-  const byName = await supabase
-    .from("tokens")
-    .select("*")
-    .ilike("name", nameGuess);
-
-  if (!byName.error && byName.data && byName.data.length > 0) {
-    return byName.data[0];
-  }
-
-  // Nothing matched
-  return null;
-}
-
-export default async function TokenPage({ params }: TokenPageProps) {
-  const rawParam = params.id;
-
-  const token = await fetchTokenByAnyKey(rawParam);
-
-  if (!token) {
+  if (error || !token) {
+    console.error(error);
     return (
       <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
         <div className="text-center space-y-3">
