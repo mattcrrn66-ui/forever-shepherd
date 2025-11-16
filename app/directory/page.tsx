@@ -18,8 +18,8 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function DirectoryPage() {
-  // IMPORTANT: table name is lowercase "tokens" to match Supabase
   const { data, error } = await supabase
+    // ✅ table name is lowercase "tokens"
     .from("tokens")
     .select("*")
     .order("created_at", { ascending: false });
@@ -27,7 +27,7 @@ export default async function DirectoryPage() {
   const tokens = (data as TokenRow[] | null) ?? [];
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen cyber-page text-slate-100">
       <div className="max-w-5xl mx-auto px-4 py-10 sm:py-16">
         {/* Header */}
         <header className="mb-10 border-b border-slate-800 pb-6">
@@ -64,7 +64,7 @@ export default async function DirectoryPage() {
               {tokens.map((token) => (
                 <article
                   key={token.id}
-                  className="border border-slate-800 rounded-2xl p-4 bg-slate-900/40 hover:bg-slate-900/70 transition-colors"
+                  className="border border-slate-800 rounded-2xl p-4 bg-slate-900/70 cyber-card hover:bg-slate-900/90 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div>
@@ -93,7 +93,7 @@ export default async function DirectoryPage() {
                         href={token.website_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2 py-1 rounded-full border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 transition-colors"
+                        className="px-2 py-1 rounded-full border border-slate-700 bg-slate-900/70 hover:border-cyan-400 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(34,211,238,0.55)] transition-colors"
                       >
                         Site
                       </a>
@@ -103,7 +103,7 @@ export default async function DirectoryPage() {
                         href={token.x_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2 py-1 rounded-full border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 transition-colors"
+                        className="px-2 py-1 rounded-full border border-slate-700 bg-slate-900/70 hover:border-cyan-400 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(34,211,238,0.55)] transition-colors"
                       >
                         X
                       </a>
@@ -113,7 +113,7 @@ export default async function DirectoryPage() {
                         href={token.telegram_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-2 py-1 rounded-full border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 transition-colors"
+                        className="px-2 py-1 rounded-full border border-slate-700 bg-slate-900/70 hover:border-cyan-400 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(34,211,238,0.55)] transition-colors"
                       >
                         TG
                       </a>
