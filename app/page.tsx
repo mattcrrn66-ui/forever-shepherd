@@ -118,8 +118,8 @@ export default function TokenHubPage() {
     const { error } = await supabase.auth.signInWithOtp({
       email: trimmed,
       options: {
-        emailRedirectTo:
-          typeof window !== "undefined" ? window.location.origin : undefined,
+        // 🔥 ALWAYS send them back to the live site
+        emailRedirectTo: "https://www.cyberdevtoken.com",
       },
     });
 
