@@ -8,7 +8,7 @@ type TokenRow = {
   description: string | null;
   image_url?: string | null;
   telegram_url?: string | null;
-  twitter_url?: string | null;
+  x_url?: string | null;
   website_url?: string | null;
   created_at?: string;
 };
@@ -18,8 +18,9 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default async function DirectoryPage() {
+  // IMPORTANT: table name is lowercase "tokens" to match Supabase
   const { data, error } = await supabase
-    .from("Tokens")
+    .from("tokens")
     .select("*")
     .order("created_at", { ascending: false });
 
@@ -37,8 +38,9 @@ export default async function DirectoryPage() {
             Token Directory
           </h1>
           <p className="mt-3 text-lg text-slate-300">
-            Live list of tokens created through the Cyber Dev Hub. Data is loaded
-            directly from the <span className="font-mono">Tokens</span> table in Supabase.
+            Live list of tokens created through the Cyber Dev Hub. Data is
+            loaded directly from the{" "}
+            <span className="font-mono">tokens</span> table in Supabase.
           </p>
         </header>
 
@@ -46,9 +48,7 @@ export default async function DirectoryPage() {
         {error && (
           <div className="mb-6 rounded-xl border border-red-800 bg-red-950/40 px-4 py-3 text-sm text-red-200">
             <p className="font-semibold">Error loading tokens</p>
-            <p className="text-xs mt-1 opacity-80">
-              {error.message}
-            </p>
+            <p className="text-xs mt-1 opacity-80">{error.message}</p>
           </div>
         )}
 
@@ -56,8 +56,8 @@ export default async function DirectoryPage() {
         <section className="space-y-6">
           {tokens.length === 0 ? (
             <p className="text-slate-400 text-sm">
-              No tokens found yet. Create your first token profile on the home page
-              and it will appear here automatically.
+              No tokens found yet. Create your first token profile on the home
+              page and it will appear here automatically.
             </p>
           ) : (
             <div className="grid gap-5 md:grid-cols-2">
@@ -76,7 +76,8 @@ export default async function DirectoryPage() {
                       </p>
                       {token.created_at && (
                         <p className="text-[11px] text-slate-500 mt-1">
-                          Created: {new Date(token.created_at).toLocaleString()}
+                          Created:{" "}
+                          {new Date(token.created_at).toLocaleString()}
                         </p>
                       )}
                     </div>
@@ -97,9 +98,9 @@ export default async function DirectoryPage() {
                         Site
                       </a>
                     )}
-                    {token.twitter_url && (
+                    {token.x_url && (
                       <a
-                        href={token.twitter_url}
+                        href={token.x_url}
                         target="_blank"
                         rel="noreferrer"
                         className="px-2 py-1 rounded-full border border-slate-700 hover:border-cyan-400 hover:text-cyan-300 transition-colors"
@@ -127,9 +128,9 @@ export default async function DirectoryPage() {
         {/* Note */}
         <section className="mt-10 border-t border-slate-800 pt-5">
           <p className="text-xs text-slate-500">
-            This directory reads directly from Supabase. Any token created through the
-            Cyber Dev Hub should appear here as long as it is saved in the{" "}
-            <span className="font-mono">Tokens</span> table.
+            This directory reads directly from Supabase. Any token created
+            through the Cyber Dev Hub should appear here as long as it is saved
+            in the <span className="font-mono">tokens</span> table.
           </p>
         </section>
       </div>
