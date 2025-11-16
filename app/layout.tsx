@@ -30,12 +30,30 @@ export default function RootLayout({
               </a>
 
               {/* Nav Links */}
-              <nav className="flex items-center gap-4 text-sm">
+              <nav className="flex flex-wrap items-center gap-4 text-sm">
                 <a
                   href="/"
                   className="text-slate-300 hover:text-cyan-300 transition-colors"
                 >
                   Home
+                </a>
+                <a
+                  href="/directory"
+                  className="text-slate-300 hover:text-cyan-300 transition-colors"
+                >
+                  Directory
+                </a>
+                <a
+                  href="/dev-hub"
+                  className="text-slate-300 hover:text-cyan-300 transition-colors"
+                >
+                  Dev Hub
+                </a>
+                <a
+                  href="/community"
+                  className="text-slate-300 hover:text-cyan-300 transition-colors"
+                >
+                  Community
                 </a>
                 <a
                   href="/whitepaper"
@@ -60,11 +78,28 @@ export default function RootLayout({
 
           {/* Footer */}
           <footer className="border-t border-slate-800 mt-8">
-            <div className="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex justify-between">
-              <span>© {new Date().getFullYear()} Cyber Dev Token · $CDT</span>
-              <span className="hidden sm:inline">
-                Tools for creators, devs & communities on Solana.
+            <div className="max-w-5xl mx-auto px-4 py-4 text-xs text-slate-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <span>
+                © {new Date().getFullYear()} Cyber Dev Token · $CDT
               </span>
+
+              <div className="flex flex-wrap gap-3">
+                <span className="hidden sm:inline">
+                  Tools for creators, devs & communities on Solana.
+                </span>
+                <a
+                  href="/terms"
+                  className="hover:text-cyan-300 transition-colors"
+                >
+                  Terms
+                </a>
+                <a
+                  href="/privacy"
+                  className="hover:text-cyan-300 transition-colors"
+                >
+                  Privacy
+                </a>
+              </div>
             </div>
           </footer>
         </div>
