@@ -10,17 +10,35 @@ interface TokenPageProps {
 const supabase = createClient();
 
 export default async function TokenPage({ params }: TokenPageProps) {
-  const tokenId = params.id;
+  // This can be either a real DB id OR a symbol (like "CYDT")
+  const rawParam = params.id;
+  const tokenKey = decodeURIComponent(rawParam);
 
-  // Fetch the token from Supabase (no TypeScript generics here)
-  const { data: token, error } = await supabase
+  let token: any = null;
+
+  // 1) First try to find by ID
+  const byId = await supabase
     .from("tokens")
     .select("*")
-    .eq("id", tokenId)
+    .eq("id", tokenKey)
     .single();
 
-  if (error || !token) {
-    console.error(error);
+  if (!byId.error && byId.data) {
+    token = byId.data;
+  } else {
+    // 2) Fallback: try to find by SYMBOL (uppercased)
+    const bySymbol = await supabase
+      .from("tokens")
+      .select("*")
+      .eq("symbol", tokenKey.toUpperCase())
+      .single();
+
+    if (!bySymbol.error && bySymbol.data) {
+      token = bySymbol.data;
+    }
+  }
+
+  if (!token) {
     return (
       <main className="min-h-screen bg-slate-950 text-slate-50 flex items-center justify-center">
         <div className="text-center space-y-3">
@@ -49,7 +67,7 @@ export default async function TokenPage({ params }: TokenPageProps) {
           </Link>{" "}
           <span className="text-slate-500">/</span>{" "}
           <Link
-            href="/tokens"
+            href="/directory"
             className="text-cyan-400 hover:text-cyan-300 underline"
           >
             Directory
@@ -129,7 +147,7 @@ export default async function TokenPage({ params }: TokenPageProps) {
 
         {/* Community Portal */}
         <TokenPortal
-          tokenId={tokenId}
+          tokenId={token.id}
           name={token.name}
           symbol={token.symbol}
         />
