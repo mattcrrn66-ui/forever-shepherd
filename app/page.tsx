@@ -20,7 +20,7 @@ type TokenRow = {
   created_at: string | null;
 };
 
-export default function TokenHubPage() {
+export default function HomePage() {
   const [name, setName] = useState("");
   const [symbol, setSymbol] = useState("");
   const [description, setDescription] = useState("");
@@ -179,6 +179,60 @@ export default function TokenHubPage() {
           gap: 24,
         }}
       >
+        {/* HEADER ROW */}
+        <header
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            marginBottom: 4,
+          }}
+        >
+          <p
+            style={{
+              fontSize: 10,
+              letterSpacing: "0.25em",
+              textTransform: "uppercase",
+              color: "#22d3ee",
+            }}
+          >
+            Cyber Dev Token • $CDT
+          </p>
+          <h1 style={{ fontSize: 30, fontWeight: 700 }}>
+            The Roundtable for Builders
+          </h1>
+          <p
+            style={{
+              fontSize: 14,
+              color: "#9ca3af",
+              maxWidth: 600,
+            }}
+          >
+            Create your token profile, upload art, and get listed on the hub.
+            This is the early builder layer for Solana projects — not a shill
+            wall.
+          </p>
+
+          <div style={{ marginTop: 10 }}>
+            <Link
+              href="/launch"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                borderRadius: 999,
+                border: "1px solid rgba(34,211,238,0.6)",
+                padding: "6px 14px",
+                fontSize: 13,
+                fontWeight: 500,
+                color: "#a5f3fc",
+                textDecoration: "none",
+              }}
+            >
+              Launch / Register a Token
+            </Link>
+          </div>
+        </header>
+
         {/* TOP: FORM + PREVIEW */}
         <div
           style={{
@@ -194,12 +248,13 @@ export default function TokenHubPage() {
         >
           {/* LEFT: FORM */}
           <div>
-            <h1 style={{ fontSize: 26, marginBottom: 8 }}>
-              Cyber Dev Token Hub
-            </h1>
+            <h2 style={{ fontSize: 22, marginBottom: 8 }}>
+              Create Token Profile
+            </h2>
 
-            <p style={{ color: "#9ca3af", marginBottom: 20, fontSize: 14 }}>
-              Create your token profile below. Upload an image or paste a URL.
+            <p style={{ color: "#9ca3af", marginBottom: 20, fontSize: 13 }}>
+              Fill this out to create a clean profile card on the hub. Upload an
+              image or paste a URL — both work.
             </p>
 
             <form onSubmit={handleSubmit}>
@@ -234,9 +289,7 @@ export default function TokenHubPage() {
                 <input
                   type="text"
                   value={symbol}
-                  onChange={(e) =>
-                    setSymbol(e.target.value.toUpperCase())
-                  }
+                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
                   style={inputStyle}
                 />
               </div>
@@ -315,9 +368,7 @@ export default function TokenHubPage() {
                 <input
                   type="text"
                   value={manualImageUrl}
-                  onChange={(e) =>
-                    setManualImageUrl(e.target.value)
-                  }
+                  onChange={(e) => setManualImageUrl(e.target.value)}
                   placeholder="https://example.com/image.png"
                   style={inputStyle}
                 />
@@ -336,9 +387,7 @@ export default function TokenHubPage() {
                 <input
                   type="text"
                   value={telegramUrl}
-                  onChange={(e) =>
-                    setTelegramUrl(e.target.value)
-                  }
+                  onChange={(e) => setTelegramUrl(e.target.value)}
                   placeholder="https://t.me/your_project"
                   style={inputStyle}
                 />
@@ -376,9 +425,7 @@ export default function TokenHubPage() {
                 <input
                   type="text"
                   value={websiteUrl}
-                  onChange={(e) =>
-                    setWebsiteUrl(e.target.value)
-                  }
+                  onChange={(e) => setWebsiteUrl(e.target.value)}
                   placeholder="https://yourproject.xyz"
                   style={inputStyle}
                 />
@@ -438,7 +485,7 @@ export default function TokenHubPage() {
                 fontSize: 16,
               }}
             >
-              Preview
+              Live Preview
             </h2>
 
             {imageFile ? (
@@ -505,10 +552,7 @@ export default function TokenHubPage() {
                 {telegramUrl && <>TG: {telegramUrl}{"  "}</>}
                 {xUrl && <>· X: {xUrl}{"  "}</>}
                 {websiteUrl && <>· Site: {websiteUrl}</>}
-                {!telegramUrl &&
-                  !xUrl &&
-                  !websiteUrl &&
-                  "No links added yet."}
+                {!telegramUrl && !xUrl && !websiteUrl && "No links added yet."}
               </p>
             </div>
           </div>
@@ -530,14 +574,15 @@ export default function TokenHubPage() {
               color: "#e5e7eb",
             }}
           >
-            Latest Tokens
+            Latest Tokens on the Hub
           </h2>
 
           {loadingTokens ? (
             <p style={{ color: "#9ca3af", fontSize: 13 }}>Loading...</p>
           ) : tokens.length === 0 ? (
             <p style={{ color: "#6b7280", fontSize: 13 }}>
-              No tokens created yet.
+              No tokens created yet. Use the form above to create your first
+              profile.
             </p>
           ) : (
             <div
@@ -672,18 +717,16 @@ export default function TokenHubPage() {
                           Site
                         </a>
                       )}
-                      {!t.telegram_url &&
-                        !t.x_url &&
-                        !t.website_url && (
-                          <span
-                            style={{
-                              color: "#6b7280",
-                              fontSize: 11,
-                            }}
-                          >
-                            No links
-                          </span>
-                        )}
+                      {!t.telegram_url && !t.x_url && !t.website_url && (
+                        <span
+                          style={{
+                            color: "#6b7280",
+                            fontSize: 11,
+                          }}
+                        >
+                          No links
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>
