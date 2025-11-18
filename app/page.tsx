@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, FormEvent } from "react";
-import type { CSSProperties } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from "react";
 import Link from "next/link";
-import { createClient } from "../lib/supabaseClient";
+import { createClient } from "@/lib/supabaseClient";
 
 const supabase = createClient();
-const BUCKET_NAME = "token-images";
 
 type TokenRow = {
   id: string;
@@ -20,146 +23,266 @@ type TokenRow = {
   created_at: string | null;
 };
 
-export default function HomePage() {
-  const [name, setName] = useState("");
-  const [symbol, setSymbol] = useState("");
-  const [description, setDescription] = useState("");
-  const [telegramUrl, setTelegramUrl] = useState("");
-  const [xUrl, setXUrl] = useState("");
-  const [websiteUrl, setWebsiteUrl] = useState("");
+type LiveToken = {
+  id: string;
+  url: string;
+  chainId: string;
+  name: string;
+  symbol: string;
+  priceUsd: string | null;
+  volume24h: number | null;
+  liquidityUsd: number | null;
+  imageUrl: string | null;
+  website: string | null;
+  socials: { platform: string; handle: string }[];
+};
 
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [manualImageUrl, setManualImageUrl] = useState("");
+type EnrichedToken = TokenRow & {
+  heatScore: number;
+  mergedLive?: LiveToken | null;
+};
 
-  const [status, setStatus] = useState("");
-  const [loading, setLoading] = useState(false);
+type SortMode = "recent" | "heat";
 
+export default function HomeTokenWatchPage() {
+  // Hub tokens (Supabase)
   const [tokens, setTokens] = useState<TokenRow[]>([]);
   const [loadingTokens, setLoadingTokens] = useState(true);
+  const [status, setStatus] = useState<string | null>(null);
 
-  // Fetch latest tokens
+  // Live market feed (Dexscreener)
+  const [liveTokens, setLiveTokens] = useState<LiveToken[]>([]);
+  const [loadingLive, setLoadingLive] = useState(true);
+  const [liveError, setLiveError] = useState<string | null>(null);
+
+  // Filters + UI state
+  const [search, setSearch] = useState("");
+  const [onlyWithLinks, setOnlyWithLinks] = useState(false);
+  const [onlyWatchlist, setOnlyWatchlist] = useState(false);
+  const [sortMode, setSortMode] = useState<SortMode>("recent");
+
+  // Local watchlist (ids of hub tokens)
+  const [watchlist, setWatchlist] = useState<string[]>([]);
+
+  // ---- Load watchlist from localStorage ----
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem("cdt_watchlist");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setWatchlist(parsed);
+        }
+      }
+    } catch {
+      // ignore bad JSON
+    }
+  }, []);
+
+  function persistWatchlist(next: string[]) {
+    setWatchlist(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("cdt_watchlist", JSON.stringify(next));
+    }
+  }
+
+  function toggleWatch(id: string) {
+    persistWatchlist(
+      watchlist.includes(id)
+        ? watchlist.filter((x) => x !== id)
+        : [...watchlist, id]
+    );
+  }
+
+  // ---- Supabase: initial fetch ----
   async function fetchTokens() {
     try {
       setLoadingTokens(true);
+      setStatus(null);
+
       const { data, error } = await supabase
         .from("tokens")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) {
         console.error(error);
-        setStatus("Error loading tokens: " + error.message);
+        setStatus("Error loading hub tokens: " + error.message);
         setTokens([]);
         return;
       }
 
       setTokens((data as TokenRow[]) || []);
+      if (!data || data.length === 0) {
+        setStatus("No hub tokens yet. Builders are still waking up.");
+      }
     } finally {
       setLoadingTokens(false);
     }
   }
 
+  // ---- Supabase Realtime: listen to inserts/updates/deletes ----
   useEffect(() => {
     fetchTokens();
+
+    const channel = supabase
+      .channel("tokens-watchboard")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tokens" },
+        () => {
+          // simple strategy: refetch
+          fetchTokens();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function uploadImage(file: File): Promise<string | null> {
+  // ---- Dexscreener: fetch live feed (via our API route) ----
+  async function fetchLiveTokens() {
     try {
-      const ext = file.name.split(".").pop() || "png";
-      const fileName = `${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2)}.${ext}`;
-      const filePath = `uploads/${fileName}`;
+      setLoadingLive(true);
+      setLiveError(null);
 
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET_NAME)
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error(uploadError);
-        setStatus("Upload failed: " + uploadError.message);
-        return null;
-      }
-
-      const { data } = supabase.storage
-        .from(BUCKET_NAME)
-        .getPublicUrl(filePath);
-
-      if (!data?.publicUrl) {
-        setStatus("Upload failed: no public URL returned.");
-        return null;
-      }
-
-      return data.publicUrl;
-    } catch (err: any) {
-      console.error(err);
-      setStatus("Unexpected error while uploading image.");
-      return null;
-    }
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setStatus("");
-    setLoading(true);
-
-    try {
-      if (!name.trim() || !symbol.trim()) {
-        setStatus("Name and Symbol are required.");
+      const res = await fetch("/api/live-tokens");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setLiveError(body.error || "Failed to load live tokens.");
+        setLiveTokens([]);
         return;
       }
 
-      let finalImageUrl = manualImageUrl.trim();
-
-      if (imageFile) {
-        setStatus("Uploading image...");
-        const uploadedUrl = await uploadImage(imageFile);
-        if (!uploadedUrl) {
-          return;
-        }
-        finalImageUrl = uploadedUrl;
-      }
-
-      setStatus("Saving token profile...");
-
-      const { error: insertError } = await supabase.from("tokens").insert({
-        name,
-        symbol,
-        description,
-        telegram_url: telegramUrl || null,
-        x_url: xUrl || null,
-        website_url: websiteUrl || null,
-        image_url: finalImageUrl || null,
-      });
-
-      if (insertError) {
-        console.error(insertError);
-        setStatus("Error creating token: " + insertError.message);
-        return;
-      }
-
-      setStatus("✅ Token profile created successfully!");
-
-      // refresh tokens list
-      fetchTokens();
-
-      // clear form
-      setName("");
-      setSymbol("");
-      setDescription("");
-      setTelegramUrl("");
-      setXUrl("");
-      setWebsiteUrl("");
-      setManualImageUrl("");
-      setImageFile(null);
-    } catch (err: any) {
-      console.error(err);
-      setStatus("Unexpected error creating token.");
+      const data = (await res.json()) as LiveToken[];
+      setLiveTokens(data || []);
+    } catch (err) {
+      console.error("fetchLiveTokens error:", err);
+      setLiveError("Unexpected error loading live tokens.");
+      setLiveTokens([]);
     } finally {
-      setLoading(false);
+      setLoadingLive(false);
     }
   }
+
+  useEffect(() => {
+    fetchLiveTokens();
+  }, []);
+
+  // ---- Build a quick lookup for live tokens by symbol ----
+  const liveBySymbol = useMemo(() => {
+    const map: Record<string, LiveToken> = {};
+    for (const lt of liveTokens) {
+      if (!lt.symbol) continue;
+      map[lt.symbol.toUpperCase()] = lt;
+    }
+    return map;
+  }, [liveTokens]);
+
+  // ---- Compute a "heat score" for each builder token ----
+  function computeHeatScore(t: TokenRow, mergedLive?: LiveToken | null) {
+    let score = 0;
+
+    // metadata completeness
+    if (t.image_url) score += 12;
+    if (t.telegram_url) score += 6;
+    if (t.x_url) score += 6;
+    if (t.website_url) score += 6;
+
+    // newer tokens get a small boost
+    if (t.created_at) {
+      const created = new Date(t.created_at).getTime();
+      const ageHours =
+        (Date.now() - created) / (1000 * 60 * 60); // hours
+      if (!Number.isNaN(ageHours)) {
+        if (ageHours < 1) score += 10;
+        else if (ageHours < 24) score += 6;
+        else if (ageHours < 72) score += 3;
+      }
+    }
+
+    // tie in live market data if symbol matches
+    if (mergedLive) {
+      const vol = mergedLive.volume24h ?? 0;
+      const liq = mergedLive.liquidityUsd ?? 0;
+
+      if (vol > 0) {
+        score += Math.min(20, Math.log10(vol + 1) * 4);
+      }
+      if (liq > 0) {
+        score += Math.min(20, Math.log10(liq + 1) * 4);
+      }
+    }
+
+    return Math.round(score);
+  }
+
+  // ---- Enrich builder tokens with heat + merged live data ----
+  const enrichedTokens: EnrichedToken[] = useMemo(() => {
+    return tokens.map((t) => {
+      const sym = (t.symbol || "").toUpperCase();
+      const mergedLive = sym ? liveBySymbol[sym] : undefined;
+      const heatScore = computeHeatScore(t, mergedLive);
+      return { ...t, heatScore, mergedLive: mergedLive ?? null };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tokens, liveBySymbol]);
+
+  // ---- Apply search + filters + sort ----
+  const normalizedSearch = search.trim().toLowerCase();
+
+  const filteredAndSortedTokens = useMemo(() => {
+    let list = enrichedTokens.filter((t) => {
+      if (onlyWithLinks) {
+        const hasLink = !!(t.telegram_url || t.x_url || t.website_url);
+        if (!hasLink) return false;
+      }
+
+      if (onlyWatchlist) {
+        if (!watchlist.includes(t.id)) return false;
+      }
+
+      if (!normalizedSearch) return true;
+
+      const name = (t.name || "").toLowerCase();
+      const symbol = (t.symbol || "").toLowerCase();
+      return (
+        name.includes(normalizedSearch) ||
+        symbol.includes(normalizedSearch)
+      );
+    });
+
+    if (sortMode === "heat") {
+      list = [...list].sort((a, b) => b.heatScore - a.heatScore);
+    } else {
+      // recent: sort by created_at desc (fallback to current order)
+      list = [...list].sort((a, b) => {
+        const aTime = a.created_at
+          ? new Date(a.created_at).getTime()
+          : 0;
+        const bTime = b.created_at
+          ? new Date(b.created_at).getTime()
+          : 0;
+        return bTime - aTime;
+      });
+    }
+
+    return list;
+  }, [
+    enrichedTokens,
+    onlyWithLinks,
+    onlyWatchlist,
+    normalizedSearch,
+    sortMode,
+    watchlist,
+  ]);
+
+  // ---------------------------------------------------------------------------
 
   return (
     <main
@@ -179,15 +302,8 @@ export default function HomePage() {
           gap: 24,
         }}
       >
-        {/* HEADER ROW */}
-        <header
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            marginBottom: 4,
-          }}
-        >
+        {/* HEADER */}
+        <header style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <p
             style={{
               fontSize: 10,
@@ -199,23 +315,16 @@ export default function HomePage() {
             Cyber Dev Token • $CDT
           </p>
           <h1 style={{ fontSize: 30, fontWeight: 700 }}>
-            The Roundtable for Builders
+            Token Watchboard — Builder Hub + Live Feed
           </h1>
-          <p
-            style={{
-              fontSize: 14,
-              color: "#9ca3af",
-              maxWidth: 600,
-            }}
-          >
-            Create your token profile, upload art, and get listed on the hub.
-            This is the early builder layer for Solana projects — not a shill
-            wall.
+          <p style={{ fontSize: 14, color: "#9ca3af", maxWidth: 600 }}>
+            Top layer: tokens registered through the Cyber Dev builder. Below
+            that: live Solana pairs pulled directly from on-chain markets.
           </p>
 
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
             <Link
-              href="/launch"
+              href="/build"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -228,374 +337,444 @@ export default function HomePage() {
                 textDecoration: "none",
               }}
             >
-              Launch / Register a Token
+              + Create / Register a Token
+            </Link>
+
+            <Link
+              href="/launch"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                borderRadius: 999,
+                border: "1px solid #1f2937",
+                padding: "6px 14px",
+                fontSize: 12,
+                fontWeight: 500,
+                color: "#e5e7eb",
+                textDecoration: "none",
+                background: "rgba(15,23,42,0.9)",
+              }}
+            >
+              Launch Panel (coming soon)
             </Link>
           </div>
         </header>
 
-        {/* TOP: FORM + PREVIEW */}
-        <div
-          style={{
-            background: "#020617",
-            padding: 24,
-            borderRadius: 16,
-            border: "1px solid #1f2937",
-            boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
-            display: "grid",
-            gridTemplateColumns: "1.1fr 0.9fr",
-            gap: 32,
-          }}
-        >
-          {/* LEFT: FORM */}
-          <div>
-            <h2 style={{ fontSize: 22, marginBottom: 8 }}>
-              Create Token Profile
-            </h2>
-
-            <p style={{ color: "#9ca3af", marginBottom: 20, fontSize: 13 }}>
-              Fill this out to create a clean profile card on the hub. Upload an
-              image or paste a URL — both work.
-            </p>
-
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: 14 }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 4,
-                    color: "#9ca3af",
-                  }}
-                >
-                  Token Name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ marginBottom: 14 }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 4,
-                    color: "#9ca3af",
-                  }}
-                >
-                  Symbol
-                </label>
-                <input
-                  type="text"
-                  value={symbol}
-                  onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ marginBottom: 14 }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 4,
-                    color: "#9ca3af",
-                  }}
-                >
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  style={{ ...inputStyle, resize: "vertical" }}
-                />
-              </div>
-
-              <p
-                style={{
-                  marginBottom: 8,
-                  marginTop: 16,
-                  color: "#e5e7eb",
-                  fontWeight: 600,
-                  fontSize: 14,
-                }}
-              >
-                Token Image
-              </p>
-
-              <div style={{ marginBottom: 10 }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 4,
-                    color: "#9ca3af",
-                  }}
-                >
-                  Upload file (recommended)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setImageFile(e.target.files?.[0] ?? null)
-                  }
-                  style={{ color: "#e5e7eb", fontSize: 12 }}
-                />
-              </div>
-
-              <p
-                style={{
-                  textAlign: "center",
-                  margin: "10px 0",
-                  color: "#475569",
-                  fontSize: 12,
-                }}
-              >
-                — OR —
-              </p>
-
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 4,
-                    color: "#9ca3af",
-                  }}
-                >
-                  Paste Image URL (optional)
-                </label>
-                <input
-                  type="text"
-                  value={manualImageUrl}
-                  onChange={(e) => setManualImageUrl(e.target.value)}
-                  placeholder="https://example.com/image.png"
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ marginBottom: 10 }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 4,
-                    color: "#9ca3af",
-                  }}
-                >
-                  Telegram URL
-                </label>
-                <input
-                  type="text"
-                  value={telegramUrl}
-                  onChange={(e) => setTelegramUrl(e.target.value)}
-                  placeholder="https://t.me/your_project"
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ marginBottom: 10 }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 4,
-                    color: "#9ca3af",
-                  }}
-                >
-                  X (Twitter) URL
-                </label>
-                <input
-                  type="text"
-                  value={xUrl}
-                  onChange={(e) => setXUrl(e.target.value)}
-                  placeholder="https://x.com/your_project"
-                  style={inputStyle}
-                />
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    display: "block",
-                    marginBottom: 4,
-                    color: "#9ca3af",
-                  }}
-                >
-                  Website URL
-                </label>
-                <input
-                  type="text"
-                  value={websiteUrl}
-                  onChange={(e) => setWebsiteUrl(e.target.value)}
-                  placeholder="https://yourproject.xyz"
-                  style={inputStyle}
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  padding: "10px 16px",
-                  borderRadius: 999,
-                  border: "none",
-                  cursor: loading ? "default" : "pointer",
-                  fontWeight: 600,
-                  background:
-                    "linear-gradient(135deg, #22c55e, #22d3ee 40%, #6366f1)",
-                  color: "white",
-                  opacity: loading ? 0.7 : 1,
-                }}
-              >
-                {loading ? "Creating..." : "Create Token Profile"}
-              </button>
-
-              {status && (
-                <p
-                  style={{
-                    marginTop: 12,
-                    color: status.startsWith("✅")
-                      ? "#4ade80"
-                      : status.startsWith("Error") ||
-                        status.startsWith("Upload failed")
-                      ? "#f97373"
-                      : "#e5e7eb",
-                    fontSize: 13,
-                  }}
-                >
-                  {status}
-                </p>
-              )}
-            </form>
-          </div>
-
-          {/* RIGHT: LIVE PREVIEW */}
+        {/* STATUS BANNER FOR HUB TOKENS */}
+        {status && (
           <div
             style={{
+              borderRadius: 10,
               border: "1px solid #1f2937",
-              borderRadius: 16,
-              padding: 16,
-              background: "#0f172a",
+              background: "#020617",
+              padding: 10,
+              fontSize: 12,
+              color: status.startsWith("Error") ? "#f97373" : "#9ca3af",
             }}
           >
-            <h2
-              style={{
-                color: "#e5e7eb",
-                marginBottom: 12,
-                fontSize: 16,
-              }}
-            >
-              Live Preview
-            </h2>
-
-            {imageFile ? (
-              <img
-                src={URL.createObjectURL(imageFile)}
-                alt="Preview"
-                style={{
-                  width: "100%",
-                  maxWidth: 220,
-                  borderRadius: 16,
-                  border: "1px solid #374151",
-                  marginBottom: 12,
-                }}
-              />
-            ) : manualImageUrl ? (
-              <img
-                src={manualImageUrl}
-                alt="Preview"
-                style={{
-                  width: "100%",
-                  maxWidth: 220,
-                  borderRadius: 16,
-                  border: "1px solid #374151",
-                  marginBottom: 12,
-                }}
-              />
-            ) : (
-              <p style={{ color: "#64748b", marginBottom: 12 }}>
-                No image selected yet.
-              </p>
-            )}
-
-            <div>
-              <p
-                style={{
-                  color: "#e5e7eb",
-                  fontSize: 15,
-                  marginBottom: 4,
-                }}
-              >
-                {name || "Your Token Name"}
-              </p>
-              <p
-                style={{
-                  color: "#9ca3af",
-                  fontSize: 13,
-                  marginBottom: 8,
-                }}
-              >
-                {symbol || "SYM"}
-              </p>
-              <p
-                style={{
-                  color: "#9ca3af",
-                  fontSize: 12,
-                  marginBottom: 8,
-                  minHeight: 36,
-                }}
-              >
-                {description ||
-                  "This is where your token description will appear."}
-              </p>
-              <p style={{ color: "#6b7280", fontSize: 11 }}>
-                {telegramUrl && <>TG: {telegramUrl}{"  "}</>}
-                {xUrl && <>· X: {xUrl}{"  "}</>}
-                {websiteUrl && <>· Site: {websiteUrl}</>}
-                {!telegramUrl && !xUrl && !websiteUrl && "No links added yet."}
-              </p>
-            </div>
+            {status}
           </div>
-        </div>
+        )}
 
-        {/* BOTTOM: TOKEN LIST */}
-        <div
+        {/* HUB TOKENS SECTION */}
+        <section
           style={{
             background: "#020617",
             padding: 20,
             borderRadius: 16,
             border: "1px solid #1f2937",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
           }}
         >
-          <h2
+          {/* Top bar */}
+          <div
             style={{
-              fontSize: 18,
-              marginBottom: 12,
-              color: "#e5e7eb",
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 12,
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
           >
-            Latest Tokens on the Hub
-          </h2>
+            <div>
+              <h2 style={{ fontSize: 18, marginBottom: 4 }}>
+                Cyber Dev Hub Tokens (Supabase)
+              </h2>
+              {!loadingTokens && tokens.length > 0 && (
+                <span style={{ fontSize: 11, color: "#64748b" }}>
+                  Showing {filteredAndSortedTokens.length} of{" "}
+                  {tokens.length} profiles
+                </span>
+              )}
+            </div>
 
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 8,
+                alignItems: "center",
+                justifyContent: "flex-end",
+              }}
+            >
+              {/* Search */}
+              <input
+                type="text"
+                placeholder="Search by name or symbol..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  border: "1px solid #1f2937",
+                  background: "#020617",
+                  color: "#e5e7eb",
+                  fontSize: 12,
+                  minWidth: 180,
+                }}
+              />
+
+              {/* Filter: links */}
+              <button
+                type="button"
+                onClick={() => setOnlyWithLinks((prev) => !prev)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  border: onlyWithLinks
+                    ? "1px solid rgba(34,211,238,0.8)"
+                    : "1px solid #1f2937",
+                  background: onlyWithLinks
+                    ? "rgba(8,47,73,0.9)"
+                    : "rgba(15,23,42,0.9)",
+                  color: onlyWithLinks ? "#a5f3fc" : "#e5e7eb",
+                  fontSize: 11,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {onlyWithLinks ? "With Links ✓" : "Only Tokens With Links"}
+              </button>
+
+              {/* Filter: watchlist */}
+              <button
+                type="button"
+                onClick={() => setOnlyWatchlist((prev) => !prev)}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  border: onlyWatchlist
+                    ? "1px solid rgba(251,191,36,0.9)"
+                    : "1px solid #1f2937",
+                  background: onlyWatchlist
+                    ? "rgba(88,28,12,0.9)"
+                    : "rgba(15,23,42,0.9)",
+                  color: onlyWatchlist ? "#fde68a" : "#e5e7eb",
+                  fontSize: 11,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {onlyWatchlist ? "Watchlist ✓" : "Only Watchlisted"}
+              </button>
+
+              {/* Sort mode */}
+              <select
+                value={sortMode}
+                onChange={(e) => setSortMode(e.target.value as SortMode)}
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 999,
+                  border: "1px solid #1f2937",
+                  background: "#020617",
+                  color: "#e5e7eb",
+                  fontSize: 11,
+                }}
+              >
+                <option value="recent">Sort: Newest</option>
+                <option value="heat">Sort: Heat Score</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Hub tokens grid */}
           {loadingTokens ? (
             <p style={{ color: "#9ca3af", fontSize: 13 }}>Loading...</p>
           ) : tokens.length === 0 ? (
             <p style={{ color: "#6b7280", fontSize: 13 }}>
-              No tokens created yet. Use the form above to create your first
+              No tokens created yet. Use the builder to mint the first
               profile.
+            </p>
+          ) : filteredAndSortedTokens.length === 0 ? (
+            <p style={{ color: "#6b7280", fontSize: 13 }}>
+              No tokens match your filters. Clear search or toggle filters.
             </p>
           ) : (
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
                 gap: 16,
               }}
             >
-              {tokens.map((t) => (
-                <Link
+              {filteredAndSortedTokens.map((t) => {
+                const isWatched = watchlist.includes(t.id);
+                const live = t.mergedLive;
+                return (
+                  <Link
+                    key={t.id}
+                    href={`/tokens/${t.id}`}
+                    style={{ textDecoration: "none" }}
+                  >
+                    <div
+                      style={{
+                        borderRadius: 12,
+                        border: "1px solid #1f2937",
+                        padding: 12,
+                        background:
+                          "radial-gradient(circle at top left, #020617, #020617)",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 8,
+                      }}
+                    >
+                      {/* top row: avatar + name + star */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                          }}
+                        >
+                          {t.image_url ? (
+                            <img
+                              src={t.image_url}
+                              alt={t.name || ""}
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 999,
+                                objectFit: "cover",
+                                border: "1px solid #374151",
+                              }}
+                            />
+                          ) : (
+                            <div
+                              style={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: 999,
+                                border: "1px solid #374151",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 12,
+                                color: "#6b7280",
+                              }}
+                            >
+                              ?
+                            </div>
+                          )}
+                          <div>
+                            <div
+                              style={{
+                                fontSize: 14,
+                                fontWeight: 600,
+                                color: "#e5e7eb",
+                              }}
+                            >
+                              {t.name || "Unnamed Token"}
+                            </div>
+                            <div
+                              style={{ fontSize: 12, color: "#9ca3af" }}
+                            >
+                              {t.symbol || "SYM"}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* watchlist star */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleWatch(t.id);
+                          }}
+                          style={{
+                            border: "none",
+                            background: "transparent",
+                            cursor: "pointer",
+                            fontSize: 18,
+                            lineHeight: 1,
+                            color: isWatched ? "#facc15" : "#4b5563",
+                          }}
+                          aria-label="Toggle watchlist"
+                        >
+                          {isWatched ? "★" : "☆"}
+                        </button>
+                      </div>
+
+                      {/* description */}
+                      <p
+                        style={{
+                          fontSize: 12,
+                          color: "#9ca3af",
+                          minHeight: 32,
+                        }}
+                      >
+                        {t.description || "No description provided yet."}
+                      </p>
+
+                      {/* heat + live mini-bar */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 8,
+                          fontSize: 11,
+                          color: "#9ca3af",
+                        }}
+                      >
+                        <span>Heat: {t.heatScore}</span>
+                        {live && (
+                          <>
+                            <span>· Price: {live.priceUsd ? `$${Number(live.priceUsd).toFixed(6)}` : "—"}</span>
+                            <span>
+                              · 24h Vol:{" "}
+                              {live.volume24h
+                                ? `$${live.volume24h.toLocaleString()}`
+                                : "—"}
+                            </span>
+                            <span>
+                              · Liq:{" "}
+                              {live.liquidityUsd
+                                ? `$${live.liquidityUsd.toLocaleString()}`
+                                : "—"}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* links row */}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: 6,
+                          fontSize: 11,
+                          marginTop: 4,
+                        }}
+                      >
+                        {t.telegram_url && (
+                          <a
+                            href={t.telegram_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={linkPillStyle}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            TG
+                          </a>
+                        )}
+                        {t.x_url && (
+                          <a
+                            href={t.x_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={linkPillStyle}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            X
+                          </a>
+                        )}
+                        {t.website_url && (
+                          <a
+                            href={t.website_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={linkPillStyle}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Site
+                          </a>
+                        )}
+                        {!t.telegram_url && !t.x_url && !t.website_url && (
+                          <span
+                            style={{
+                              color: "#6b7280",
+                              fontSize: 11,
+                            }}
+                          >
+                            No links
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* LIVE SOLANA FEED SECTION */}
+        <section
+          style={{
+            background: "#020617",
+            padding: 20,
+            borderRadius: 16,
+            border: "1px solid #1f2937",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+          }}
+        >
+          <div>
+            <h2 style={{ fontSize: 18, marginBottom: 4 }}>
+              Live Solana Pairs (Dexscreener Feed)
+            </h2>
+            <p style={{ fontSize: 12, color: "#64748b" }}>
+              Read-only view of real market pairs pulled via the public
+              Dexscreener API. Use this as your live radar next to the curated
+              builder hub.
+            </p>
+          </div>
+
+          {loadingLive ? (
+            <p style={{ color: "#9ca3af", fontSize: 13 }}>Loading...</p>
+          ) : liveError ? (
+            <p style={{ color: "#f97373", fontSize: 13 }}>{liveError}</p>
+          ) : liveTokens.length === 0 ? (
+            <p style={{ color: "#6b7280", fontSize: 13 }}>
+              No live pairs returned. Dexscreener may be throttling or changing
+              results.
+            </p>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: 16,
+              }}
+            >
+              {liveTokens.map((t) => (
+                <a
                   key={t.id}
-                  href={`/tokens/${t.id}`}
+                  href={t.url}
+                  target="_blank"
+                  rel="noreferrer"
                   style={{ textDecoration: "none" }}
                 >
                   <div
@@ -603,8 +782,11 @@ export default function HomePage() {
                       borderRadius: 12,
                       border: "1px solid #1f2937",
                       padding: 12,
-                      background: "#020617",
-                      cursor: "pointer",
+                      background:
+                        "radial-gradient(circle at top left, #020617, #020617)",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 8,
                     }}
                   >
                     <div
@@ -612,16 +794,15 @@ export default function HomePage() {
                         display: "flex",
                         alignItems: "center",
                         gap: 10,
-                        marginBottom: 8,
                       }}
                     >
-                      {t.image_url ? (
+                      {t.imageUrl ? (
                         <img
-                          src={t.image_url}
-                          alt={t.name || ""}
+                          src={t.imageUrl}
+                          alt={t.name}
                           style={{
-                            width: 40,
-                            height: 40,
+                            width: 36,
+                            height: 36,
                             borderRadius: 999,
                             objectFit: "cover",
                             border: "1px solid #374151",
@@ -630,8 +811,8 @@ export default function HomePage() {
                       ) : (
                         <div
                           style={{
-                            width: 40,
-                            height: 40,
+                            width: 36,
+                            height: 36,
                             borderRadius: 999,
                             border: "1px solid #374151",
                             display: "flex",
@@ -644,6 +825,7 @@ export default function HomePage() {
                           ?
                         </div>
                       )}
+
                       <div>
                         <div
                           style={{
@@ -652,7 +834,7 @@ export default function HomePage() {
                             color: "#e5e7eb",
                           }}
                         >
-                          {t.name || "Unnamed"}
+                          {t.name}
                         </div>
                         <div
                           style={{
@@ -660,94 +842,56 @@ export default function HomePage() {
                             color: "#9ca3af",
                           }}
                         >
-                          {t.symbol || "SYM"}
+                          {t.symbol} • {t.chainId}
                         </div>
                       </div>
                     </div>
-
-                    <p
-                      style={{
-                        fontSize: 12,
-                        color: "#9ca3af",
-                        marginBottom: 8,
-                        minHeight: 32,
-                      }}
-                    >
-                      {t.description || "No description provided."}
-                    </p>
 
                     <div
                       style={{
                         display: "flex",
                         flexWrap: "wrap",
-                        gap: 6,
+                        gap: 8,
                         fontSize: 11,
+                        color: "#9ca3af",
                       }}
                     >
-                      {t.telegram_url && (
-                        <a
-                          href={t.telegram_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={linkPillStyle}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          TG
-                        </a>
-                      )}
-                      {t.x_url && (
-                        <a
-                          href={t.x_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={linkPillStyle}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          X
-                        </a>
-                      )}
-                      {t.website_url && (
-                        <a
-                          href={t.website_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={linkPillStyle}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Site
-                        </a>
-                      )}
-                      {!t.telegram_url && !t.x_url && !t.website_url && (
-                        <span
-                          style={{
-                            color: "#6b7280",
-                            fontSize: 11,
-                          }}
-                        >
-                          No links
-                        </span>
-                      )}
+                      <span>
+                        Price:{" "}
+                        {t.priceUsd
+                          ? `$${Number(t.priceUsd).toFixed(6)}`
+                          : "—"}
+                      </span>
+                      <span>
+                        · 24h Vol:{" "}
+                        {t.volume24h
+                          ? `$${t.volume24h.toLocaleString()}`
+                          : "—"}
+                      </span>
+                      <span>
+                        · Liquidity:{" "}
+                        {t.liquidityUsd
+                          ? `$${t.liquidityUsd.toLocaleString()}`
+                          : "—"}
+                      </span>
                     </div>
+
+                    {t.website && (
+                      <div style={{ marginTop: 4, fontSize: 11 }}>
+                        <span style={{ color: "#64748b" }}>Site: </span>
+                        <span style={{ color: "#a5f3fc" }}>{t.website}</span>
+                      </div>
+                    )}
                   </div>
-                </Link>
+                </a>
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </main>
   );
 }
-
-const inputStyle: CSSProperties = {
-  width: "100%",
-  padding: "8px 10px",
-  borderRadius: 8,
-  border: "1px solid #374151",
-  background: "#020617",
-  color: "#e5e7eb",
-  fontSize: 13,
-};
 
 const linkPillStyle: CSSProperties = {
   padding: "4px 8px",
