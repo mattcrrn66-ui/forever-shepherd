@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-const MEME_UNI_URL = "https://meme.university/launch"; 
+const MEME_UNI_URL = "https://meme.university"; // change if they give you a specific launch URL
 const REF_CODE = "N9S5839G";
 
 export default function MemeLaunchpadEmbedPage() {
@@ -17,7 +17,7 @@ export default function MemeLaunchpadEmbedPage() {
         const doc = iframe.contentDocument || iframe.contentWindow?.document;
         if (!doc) return;
 
-        // Find likely referral input box
+        // Try to find a likely referral input box
         const input =
           doc.querySelector("input[name='ref']") ||
           doc.querySelector("input[name='referral']") ||
@@ -32,12 +32,11 @@ export default function MemeLaunchpadEmbedPage() {
           );
         }
       } catch {
-        // If cross-origin blocks access, the fallback is the URL itself.
+        // Cross-origin protection might block this; URL ref still works.
       }
     };
 
     iframe.addEventListener("load", injectReferral);
-
     return () => iframe.removeEventListener("load", injectReferral);
   }, []);
 
@@ -55,23 +54,23 @@ export default function MemeLaunchpadEmbedPage() {
         </header>
 
         <div className="text-xs sm:text-sm text-slate-400">
-          If the launchpad doesn’t load, Meme University may block
-          iframe embedding. In that case,{" "}
+          If the launchpad doesn&apos;t load, Meme University may block iframe
+          embedding. In that case,{" "}
           <a
             href={`${MEME_UNI_URL}?ref=${REF_CODE}`}
             target="_blank"
             rel="noreferrer"
             className="text-cyan-400 underline"
           >
-            click here to open it in a new tab (referral included)
+            click here to open it in a new tab (referral included).
           </a>
-          .
         </div>
 
         <div className="min-h-[80vh] border border-slate-800 rounded-xl overflow-hidden bg-black">
           <iframe
             ref={iframeRef}
             src={`${MEME_UNI_URL}?ref=${REF_CODE}`}
+            title="Meme University Launchpad"
             className="w-full h-full min-h-[80vh]"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           />
