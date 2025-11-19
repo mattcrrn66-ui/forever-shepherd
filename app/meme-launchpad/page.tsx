@@ -1,12 +1,26 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
-const MEME_UNI_URL = "https://meme.university"; // change if they give you a specific launch URL
+const MEME_UNI_URL = "https://meme.university"; // base dapp URL
 const REF_CODE = "N9S5839G";
+const REFERRER_URL = "https://cyberdevtoken.com";
 
 export default function MemeLaunchpadEmbedPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  const launchUrl = `${MEME_UNI_URL}?ref=${REF_CODE}`;
+  const phantomBrowseUrl = `https://phantom.app/ul/browse/${encodeURIComponent(
+    launchUrl
+  )}?ref=${encodeURIComponent(REFERRER_URL)}`;
+
+  useEffect(() => {
+    // Simple mobile detection
+    if (typeof navigator !== "undefined") {
+      setIsMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    }
+  }, []);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -17,7 +31,6 @@ export default function MemeLaunchpadEmbedPage() {
         const doc = iframe.contentDocument || iframe.contentWindow?.document;
         if (!doc) return;
 
-        // Try to find a likely referral input box
         const input =
           doc.querySelector("input[name='ref']") ||
           doc.querySelector("input[name='referral']") ||
@@ -32,13 +45,13 @@ export default function MemeLaunchpadEmbedPage() {
           );
         }
       } catch {
-        // Cross-origin protection might block this; URL ref still works.
+        // Cross-origin might block this; URL ref still works.
       }
     };
 
     iframe.addEventListener("load", injectReferral);
     return () => iframe.removeEventListener("load", injectReferral);
-  }, []);
+  }, [launchUrl]);
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
@@ -53,23 +66,46 @@ export default function MemeLaunchpadEmbedPage() {
           </p>
         </header>
 
-        <div className="text-xs sm:text-sm text-slate-400">
-          If the launchpad doesn&apos;t load, Meme University may block iframe
-          embedding. In that case,{" "}
+        {/* Mobile: open directly in Phantom */}
+        {isMobile && (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm text-slate-300">
+              On mobile, the best experience is to open Meme University inside
+              the Phantom app.
+            </p>
+            <a
+              href={phantomBrowseUrl}
+              className="inline-flex items-center justify-center px-5 py-3 rounded-full border border-cyan-400/70 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-200 text-sm font-medium"
+            >
+              Open in Phantom (with referral)
+            </a>
+            <p className="text-xs text-slate-500">
+              If nothing happens, make sure the Phantom app is installed, then
+              tap the button again.
+            </p>
+          </div>
+        )}
+
+        {/* Desktop + fallback for mobile browsers */}
+        <div className="text-xs sm:text-sm text-slate-400 mt-2">
+          If the embedded launchpad doesn&apos;t load correctly or wallet
+          connect behaves weird,{" "}
           <a
-            href={`${MEME_UNI_URL}?ref=${REF_CODE}`}
+            href={launchUrl}
             target="_blank"
             rel="noreferrer"
             className="text-cyan-400 underline"
           >
-            click here to open it in a new tab (referral included).
+            click here to open Meme University in a full tab (referral included)
           </a>
+          . On desktop, that&apos;s the best way to let Phantom connect.
         </div>
 
-        <div className="min-h-[80vh] border border-slate-800 rounded-xl overflow-hidden bg-black">
+        {/* Iframe preview (mostly for desktop) */}
+        <div className="min-h-[80vh] border border-slate-800 rounded-xl overflow-hidden bg-black mt-2">
           <iframe
             ref={iframeRef}
-            src={`${MEME_UNI_URL}?ref=${REF_CODE}`}
+            src={launchUrl}
             title="Meme University Launchpad"
             className="w-full h-full min-h-[80vh]"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
