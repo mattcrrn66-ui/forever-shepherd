@@ -1,65 +1,40 @@
-// app/api/affiliate/click/route.ts
-import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabaseClient";
 
-const supabase = createClient();
+export async function POST(req: Request) {
+  const supabase = createClient();
 
-export const POST = async (req: NextRequest) => {
   try {
-    const body = await req.json();
-    const { affiliate_code, source } = body as {
-      affiliate_code?: string;
-      source?: string;
-    };
-
-    if (!affiliate_code) {
-      return NextResponse.json(
-        { error: "Missing affiliate_code" },
-        { status: 400 }
-      );
-    }
-
-    const ipHeader =
-      req.headers.get("x-forwarded-for") ||
-      req.headers.get("x-real-ip") ||
+    const { affiliate_code, source } = await req.json();
+    const user_agent = req.headers.get("user-agent") || "unknown";
+    const ip_address =
+      req.headers.get("x-forwarded-for")?.split(",")[0] ||
       "unknown";
 
-    const ip = ipHeader.split(",")[0].trim();
-    const ua = req.headers.get("user-agent") || "unknown";
-
-    const { data, error } = await supabase.from("affiliate_clicks").insert({
-      affiliate_code,
-      source: source || "site_visit",
-      ip_address: ip,
-      user_agent: ua,
-    }).select("*");
+    const { data, error } = await supabase
+      .from("affiliate_clicks")
+      .insert({
+        affiliate_code,
+        source,
+        user_agent,
+        ip_address,
+      })
+      .select("*");
 
     if (error) {
-      console.error("Supabase insert error (DEBUG):", error);
+      console.log("SUPABASE ERROR →", error);
       return NextResponse.json(
-        {
-          error: "Database insert failed",
-          supabaseError: {
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            code: error.code,
-          },
-        },
+        { debug: "supabase insert error", error: error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ success: true, inserted: data }, { status: 200 });
-  } catch (err: any) {
-    console.error("Click logging error (DEBUG):", err);
+    return NextResponse.json({ success: true, data });
+  } catch (e: any) {
+    console.log("UNCAUGHT ERROR →", e);
     return NextResponse.json(
-      {
-        error: "Invalid request body or unexpected error",
-        debug: String(err?.message ?? err),
-      },
-      { status: 400 }
+      { debug: "uncaught", error: e.message },
+      { status: 500 }
     );
   }
-};
+}
