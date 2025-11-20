@@ -1,81 +1,60 @@
-// app/dashboard/affiliate/page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabaseClient";
-import { useEnsureAffiliateRow } from "@/lib/useEnsureAffiliate";
-
-const supabase = createClient();
-
-type UserAffiliate = {
-  affiliate_code: string;
-};
+import { useEnsureAffiliate } from "@/lib/useEnsureAffiliate";
 
 export default function AffiliateDashboardPage() {
-  useEnsureAffiliateRow(); // backup: ensures row exists
+  const { myCode, referralLink, loading } = useEnsureAffiliate();
 
-  const [data, setData] = useState<UserAffiliate | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadAffiliate = async () => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        console.error("No user or error getting user:", userError?.message);
-        setLoading(false);
-        return;
-      }
-
-      const { data: row, error } = await supabase
-        .from("user_affiliates")
-        .select("affiliate_code")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (error) {
-        console.error("Error loading affiliate data:", error.message);
-        setLoading(false);
-        return;
-      }
-
-      if (row) {
-        setData(row as UserAffiliate);
-      }
-      setLoading(false);
-    };
-
-    loadAffiliate();
-  }, []);
-
-  const origin =
-    typeof window !== "undefined"
-      ? window.location.origin
-      : "https://cyberdevtoken.com";
-
-  const refLink =
-    data?.affiliate_code
-      ? `${origin}/?ref=${data.affiliate_code}`
-      : "Generating your affiliate link...";
+  const handleCopy = async () => {
+    if (!referralLink) return;
+    try {
+      await navigator.clipboard.writeText(referralLink);
+    } catch {
+      // ignore clipboard errors
+    }
+  };
 
   return (
-    <main className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-2xl font-semibold mb-4">Affiliate Dashboard</h1>
+    <main className="min-h-screen bg-slate-950 text-slate-100">
+      <div className="max-w-3xl mx-auto px-4 py-16">
+        <h1 className="text-3xl font-bold mb-6">Affiliate Dashboard</h1>
 
-      <div className="rounded-xl border border-slate-800 p-4 bg-slate-900/60">
-        <p className="text-sm text-slate-400 mb-2">Your referral link</p>
-        <div className="flex items-center gap-2">
-          <code className="text-xs sm:text-sm break-all bg-slate-950/60 px-3 py-2 rounded-lg border border-slate-800">
-            {loading ? "Loading..." : refLink}
-          </code>
-        </div>
-        <p className="text-xs text-slate-500 mt-3">
-          Share this link. Anyone who visits and uses CyberDev through it can
-          earn you rewards once we plug in the payout system.
-        </p>
+        <section className="border border-slate-800 rounded-xl bg-slate-900/60 p-6 space-y-4">
+          <p className="text-sm font-medium text-slate-200">Your referral link</p>
+
+          {loading || !referralLink ? (
+            <p className="text-slate-500 text-sm">
+              Generating your affiliate link...
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                <code className="flex-1 text-xs sm:text-sm bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-2 overflow-x-auto">
+                  {referralLink}
+                </code>
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="px-4 py-2 rounded-lg bg-cyan-500 text-slate-900 text-sm font-semibold hover:bg-cyan-400"
+                >
+                  Copy
+                </button>
+              </div>
+
+              {myCode && (
+                <p className="text-xs text-slate-500">
+                  Your affiliate code:{" "}
+                  <span className="font-mono text-cyan-300">{myCode}</span>
+                </p>
+              )}
+
+              <p className="text-xs text-slate-500">
+                Share this link. Anyone who visits CyberDev through it and later
+                uses the platform can earn you rewards once payouts are wired in.
+              </p>
+            </>
+          )}
+        </section>
       </div>
     </main>
   );

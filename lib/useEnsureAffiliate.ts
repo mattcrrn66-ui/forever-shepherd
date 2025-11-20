@@ -1,58 +1,75 @@
-// lib/useEnsureAffiliate.ts
 "use client";
 
-import { useEffect } from "react";
-import { createClient } from "@/lib/supabaseClient";
+import { useEffect, useState } from "react";
 
-const supabase = createClient();
+type AffiliateState = {
+  myCode: string | null;
+  referralLink: string | null;
+  loading: boolean;
+};
 
-export function useEnsureAffiliateRow() {
+function generateAffiliateCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 6; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `CDT-${out}`;
+}
+
+/**
+ * Ensures this browser has:
+ * 1) Its own affiliate code (for sharing)
+ * 2) Any incoming ?ref=... is tracked + stored
+ */
+export function useEnsureAffiliate(): AffiliateState {
+  const [myCode, setMyCode] = useState<string | null>(null);
+  const [referralLink, setReferralLink] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    let cancelled = false;
+    if (typeof window === "undefined") return;
 
-    const run = async () => {
-      // 1. Get current user
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+    (async () => {
+      try {
+        const origin = window.location.origin;
 
-      if (userError || !user || cancelled) {
-        if (userError) {
-          console.error("Error getting user:", userError.message);
+        // 1) Make sure THIS browser has its own affiliate code
+        let storedMyCode = window.localStorage.getItem("cdt_my_affiliate_code");
+        if (!storedMyCode) {
+          storedMyCode = generateAffiliateCode();
+          window.localStorage.setItem("cdt_my_affiliate_code", storedMyCode);
         }
-        return;
-      }
+        setMyCode(storedMyCode);
+        setReferralLink(`${origin}/?ref=${storedMyCode}`);
 
-      // 2. Check if they already have a row in user_affiliates
-      const { data: existing, error: selectError } = await supabase
-        .from("user_affiliates")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        // 2) Check if user arrived with a ?ref=... code from someone else
+        const url = new URL(window.location.href);
+        const incomingRef = url.searchParams.get("ref");
 
-      // PGRST116 = "no rows" – normal if it's their first time
-      if (selectError && selectError.code !== "PGRST116") {
-        console.error("Error checking affiliate row:", selectError.message);
-        return;
-      }
+        if (incomingRef) {
+          // Remember who referred this browser
+          window.localStorage.setItem("cdt_attribution_code", incomingRef);
 
-      // 3. If no row, insert one (trigger will auto-fill affiliate_code)
-      if (!existing) {
-        const { error: insertError } = await supabase
-          .from("user_affiliates")
-          .insert({ user_id: user.id });
-
-        if (insertError) {
-          console.error("Error inserting affiliate row:", insertError.message);
+          // Log the click to your API (→ affiliate_clicks)
+          try {
+            await fetch("/api/affiliate/click", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                affiliate_code: incomingRef,
+                source: "site_visit_with_ref",
+              }),
+            });
+          } catch {
+            // ignore network errors for now
+          }
         }
+      } finally {
+        setLoading(false);
       }
-    };
-
-    run();
-
-    return () => {
-      cancelled = true;
-    };
+    })();
   }, []);
+
+  return { myCode, referralLink, loading };
 }
