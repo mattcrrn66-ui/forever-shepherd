@@ -1,83 +1,79 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { useState, useCallback } from "react";
 
-type ComfySendResponse = {
+type SendResponse = any;
+type ResultResponse = {
   ok: boolean;
-  status: number;
-  contentType?: string;
-  json?: any;
-  text?: string | null;
-};
-
-type ComfyResultResponse = {
-  ok: boolean;
-  status: number;
-  jobStatus?: string;
-  images?: string[];
-  raw?: any;
+  completed?: boolean;
+  images?: { filename: string; url: string }[];
+  rawHistory?: any;
   error?: string;
 };
 
 export default function ComfyTesterPage() {
   const [prompt, setPrompt] = useState("girl on couch");
-  const [sending, setSending] = useState(false);
-  const [polling, setPolling] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [lastSend, setLastSend] = useState<SendResponse | null>(null);
+  const [lastResult, setLastResult] = useState<ResultResponse | null>(null);
+  const [images, setImages] = useState<{ filename: string; url: string }[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  const [promptId, setPromptId] = useState<string | null>(null);
-  const [lastSendResponse, setLastSendResponse] =
-    useState<ComfySendResponse | null>(null);
-  const [lastResult, setLastResult] =
-    useState<ComfyResultResponse | null>(null);
+  const pretty = (value: any) =>
+    value ? JSON.stringify(value, null, 2) : "// No data yet";
 
-  // Auto-poll when we have a promptId
-  useEffect(() => {
-    if (!promptId) return;
+  const pollForResult = useCallback(async (promptId: string) => {
+    let tries = 0;
+    const maxTries = 40;
+    const delay = 2000;
 
-    let cancelled = false;
-    setPolling(true);
-
-    const poll = async () => {
+    async function loop() {
+      tries += 1;
       try {
         const res = await fetch(
-          `/api/affiliate/click/comfy/result?prompt_id=${encodeURIComponent(
+          `/api/affiliate/click/comfy/result?promptId=${encodeURIComponent(
             promptId
-          )}`
+          )}`,
+          { cache: "no-store" }
         );
-        const data = (await res.json()) as ComfyResultResponse;
-        if (cancelled) return;
-
+        const data: ResultResponse = await res.json();
         setLastResult(data);
 
-        const status = data.jobStatus?.toLowerCase() ?? "";
-        const hasImages = !!data.images && data.images.length > 0;
-
-        if (status.includes("completed") || hasImages) {
-          setPolling(false);
+        if (!data.ok) {
+          setError(data.error ?? "Result route returned an error");
+          setIsGenerating(false);
           return;
         }
 
-        // Not done yet → poll again in 2s
-        setTimeout(poll, 2000);
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Polling error:", err);
-        setPolling(false);
+        if (data.completed && data.images && data.images.length > 0) {
+          setImages(data.images);
+          setIsGenerating(false);
+          return;
+        }
+
+        if (tries >= maxTries) {
+          setError("Timed out waiting for Comfy to finish.");
+          setIsGenerating(false);
+          return;
+        }
+
+        setTimeout(loop, delay);
+      } catch (err: any) {
+        console.error(err);
+        setError(err?.message ?? "Error polling for result");
+        setIsGenerating(false);
       }
-    };
+    }
 
-    poll();
+    loop();
+  }, []);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [promptId]);
-
-  async function handleSend() {
+  const handleGenerate = async () => {
     try {
-      setSending(true);
+      setIsGenerating(true);
+      setError(null);
+      setImages([]);
       setLastResult(null);
-      setPromptId(null);
 
       const res = await fetch("/api/affiliate/click/comfy", {
         method: "POST",
@@ -85,112 +81,128 @@ export default function ComfyTesterPage() {
         body: JSON.stringify({ prompt }),
       });
 
-      const data = (await res.json()) as ComfySendResponse;
-      setLastSendResponse(data);
+      const data = await res.json();
+      setLastSend(data);
 
-      const pid: string | undefined = data?.json?.prompt_id;
-      if (pid) {
-        setPromptId(pid);
-      } else {
-        console.warn("No prompt_id returned from /comfy");
+      const promptId =
+        data?.json?.prompt_id || data?.prompt_id || data?.id || null;
+
+      if (!promptId) {
+        setIsGenerating(false);
+        setError("No prompt_id returned from send endpoint.");
+        return;
       }
-    } catch (err) {
-      console.error("Error sending prompt:", err);
-    } finally {
-      setSending(false);
+
+      await pollForResult(promptId);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message ?? "Error sending prompt");
+      setIsGenerating(false);
     }
-  }
+  };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 px-4 py-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <div>
-          <p className="text-xs tracking-[0.25em] uppercase text-cyan-400 mb-1">
+    <main className="min-h-screen bg-slate-950 text-slate-50 flex flex-col items-center px-4 py-10">
+      <div className="w-full max-w-5xl space-y-8">
+        <header className="space-y-1">
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-400">
             Cyber Dev → ComfyUI Tester
           </p>
-          <h1 className="text-2xl font-semibold mb-2">ComfyUI Tester</h1>
-          <p className="text-sm text-slate-400">
-            Send a prompt to the Comfy proxy in production and automatically
-            poll ComfyUI for the result. When the job finishes, any generated
-            images will appear below.
+          <h1 className="text-3xl md:text-4xl font-semibold">
+            ComfyUI Tester
+          </h1>
+          <p className="text-sm text-slate-400 max-w-xl">
+            Send a prompt to the Comfy proxy in production and auto-poll
+            for the result. When the job finishes, any generated images
+            will appear below.
           </p>
-        </div>
+        </header>
 
-        {/* Prompt + button */}
-        <div className="space-y-3 bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-          <label className="block text-xs font-medium text-slate-300">
+        <section className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 md:p-6 space-y-4">
+          <label className="block text-sm font-medium text-slate-200 mb-1">
             Prompt
           </label>
           <textarea
-            className="w-full rounded-lg bg-slate-950 border border-slate-800 px-3 py-2 text-sm text-slate-100 resize-vertical min-h-[60px]"
+            className="w-full rounded-xl bg-slate-950 border border-slate-700 px-3 py-2 text-sm resize-y min-h-[64px] focus:outline-none focus:ring-2 focus:ring-cyan-500/60 focus:border-cyan-400"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
 
-          <button
-            onClick={handleSend}
-            disabled={sending}
-            className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-cyan-500 text-slate-950 text-sm font-semibold disabled:opacity-60"
-          >
-            {sending ? "Sending to Comfy..." : "Generate via Comfy"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleGenerate}
+              disabled={isGenerating || !prompt.trim()}
+              className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-medium bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isGenerating ? "Generating via Comfy..." : "Generate via Comfy"}
+            </button>
+            {isGenerating && (
+              <span className="text-xs text-slate-400">
+                Waiting for Comfy… polling result endpoint.
+              </span>
+            )}
+          </div>
 
-          {promptId && (
-            <p className="text-xs text-slate-400 mt-1">
-              <span className="font-mono text-[11px]">prompt_id:</span>{" "}
-              <span className="font-mono text-[11px]">{promptId}</span>{" "}
-              {polling && (
-                <span className="ml-1 text-cyan-300">(waiting for result…)</span>
-              )}
+          {error && (
+            <p className="text-xs text-rose-400 mt-2">
+              Error: {error}
             </p>
           )}
-        </div>
+        </section>
 
-        {/* Generated images */}
-        {lastResult?.images && lastResult.images.length > 0 && (
-          <div className="space-y-3 bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-            <h2 className="text-sm font-semibold text-slate-100">
-              Generated Images
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 flex flex-col">
+            <h2 className="text-xs font-semibold text-slate-300 mb-2">
+              Last Send → <span className="text-cyan-400">/api/affiliate/click/comfy</span>
             </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {lastResult.images.map((src, i) => (
-                <div
-                  key={i}
-                  className="relative rounded-lg overflow-hidden border border-slate-800 bg-slate-950"
+            <pre className="flex-1 text-[11px] md:text-xs bg-slate-950 rounded-xl p-3 overflow-auto">
+              {pretty(lastSend)}
+            </pre>
+          </div>
+
+          <div className="bg-slate-900/70 border border-slate-800 rounded-2xl p-4 flex flex-col">
+            <h2 className="text-xs font-semibold text-slate-300 mb-2">
+              Last Result →{" "}
+              <span className="text-cyan-400">
+                /api/affiliate/click/comfy/result
+              </span>
+            </h2>
+            <pre className="flex-1 text-[11px] md:text-xs bg-slate-950 rounded-xl p-3 overflow-auto">
+              {pretty(lastResult)}
+            </pre>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="text-sm font-semibold text-slate-200">
+            Generated Images
+          </h2>
+          {images.length === 0 && (
+            <p className="text-xs text-slate-500">
+              No images yet. Run a prompt and wait for Comfy to finish.
+            </p>
+          )}
+
+          {images.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {images.map((img) => (
+                <figure
+                  key={img.filename}
+                  className="bg-slate-900/70 border border-slate-800 rounded-2xl overflow-hidden"
                 >
                   <img
-                    src={src}
-                    alt={`Comfy output ${i + 1}`}
-                    className="w-full h-auto object-cover"
+                    src={img.url}
+                    alt={img.filename}
+                    className="w-full h-64 object-cover"
                   />
-                </div>
+                  <figcaption className="px-3 py-2 text-[10px] text-slate-400 truncate">
+                    {img.filename}
+                  </figcaption>
+                </figure>
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Raw JSON inspection */}
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-            <h2 className="text-xs font-semibold text-slate-200 mb-2">
-              Last Send → /api/affiliate/click/comfy
-            </h2>
-            <pre className="text-[11px] leading-snug bg-slate-950 border border-slate-800 rounded-md p-2 overflow-auto max-h-64">
-              {lastSendResponse
-                ? JSON.stringify(lastSendResponse, null, 2)
-                : "// No request yet"}
-            </pre>
-          </div>
-
-          <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-            <h2 className="text-xs font-semibold text-slate-200 mb-2">
-              Last Result → /api/affiliate/click/comfy/result
-            </h2>
-            <pre className="text-[11px] leading-snug bg-slate-950 border border-slate-800 rounded-md p-2 overflow-auto max-h-64">
-              {lastResult ? JSON.stringify(lastResult, null, 2) : "// No result yet"}
-            </pre>
-          </div>
-        </div>
+          )}
+        </section>
       </div>
     </main>
   );

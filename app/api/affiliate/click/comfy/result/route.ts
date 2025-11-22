@@ -1,95 +1,106 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const COMFY_URL = process.env.COMFY_URL!;
+const COMFY_URL = process.env.COMFY_URL; // e.g. "http://127.0.0.1:8188"
 
-export async function GET(req: Request) {
+if (!COMFY_URL) {
+  console.warn("COMFY_URL env var is not set");
+}
+
+export async function GET(req: NextRequest) {
   try {
-    if (!COMFY_URL) {
-      return NextResponse.json(
-        { ok: false, error: "COMFY_URL env var missing" },
-        { status: 500 }
-      );
-    }
-
     const url = new URL(req.url);
-    const promptId = url.searchParams.get("prompt_id");
+    const promptId = url.searchParams.get("promptId");
 
     if (!promptId) {
       return NextResponse.json(
-        { ok: false, error: "Missing prompt_id query param" },
+        { ok: false, error: "Missing promptId" },
         { status: 400 }
       );
     }
 
-    // Build Comfy history URL: base of COMFY_URL + /history/{prompt_id}
-    const comfyBase = new URL(COMFY_URL);
-    comfyBase.pathname = `/history/${promptId}`;
-    comfyBase.search = "";
-
-    const res = await fetch(comfyBase.toString(), {
-      method: "GET",
-    });
-
-    const contentType = res.headers.get("content-type") ?? "";
-    const isJson = contentType.includes("application/json");
-    const historyJson = isJson ? await res.json().catch(() => null) : null;
-    const historyText = !isJson ? await res.text().catch(() => null) : null;
-
-    if (!historyJson) {
+    if (!COMFY_URL) {
       return NextResponse.json(
-        {
-          ok: false,
-          status: res.status,
-          error: "No JSON from Comfy history",
-          raw: historyText,
-        },
-        { status: res.status }
+        { ok: false, error: "COMFY_URL environment variable is not set" },
+        { status: 500 }
       );
     }
 
-    // Comfy history shape is usually: { [prompt_id]: { status, outputs, ... } }
-    const entry = historyJson[promptId] ?? historyJson;
+    const historyRes = await fetch(`${COMFY_URL}/history/${promptId}`, {
+      cache: "no-store",
+    });
 
-    const status = entry.status ?? "unknown";
-    const outputs = entry.outputs ?? {};
+    if (historyRes.status === 404) {
+      return NextResponse.json({
+        ok: true,
+        completed: false,
+        images: [],
+        rawHistory: null,
+      });
+    }
 
-    // We know your SaveImage node is ID "23"
-    const saveNode = outputs["23"];
-    const images: string[] = [];
+    if (!historyRes.ok) {
+      const text = await historyRes.text();
+      return NextResponse.json(
+        {
+          ok: false,
+          completed: false,
+          error: "Failed to fetch history from Comfy",
+          status: historyRes.status,
+          body: text,
+        },
+        { status: 500 }
+      );
+    }
 
-    if (saveNode && Array.isArray(saveNode.images)) {
-      // Build public /view URLs on the same ngrok base
-      const baseView = new URL(COMFY_URL);
-      baseView.pathname = "/view";
+    const historyJson = (await historyRes.json()) as any;
+    const entry = historyJson[promptId];
 
-      for (const img of saveNode.images) {
-        const filename = img.filename;
-        const subfolder = img.subfolder ?? "";
-        const type = img.type ?? "output";
+    if (!entry || !entry.outputs) {
+      return NextResponse.json({
+        ok: true,
+        completed: false,
+        images: [],
+        rawHistory: entry ?? null,
+      });
+    }
 
-        const viewUrl = new URL(baseView.toString());
-        viewUrl.searchParams.set("filename", filename);
-        viewUrl.searchParams.set("subfolder", subfolder);
-        viewUrl.searchParams.set("type", type);
+    const outputs = entry.outputs;
+    const imageInfos: { filename: string; subfolder: string; type: string }[] =
+      [];
 
-        images.push(viewUrl.toString());
+    for (const nodeId of Object.keys(outputs)) {
+      const nodeOutput = (outputs as any)[nodeId];
+      if (!nodeOutput?.images) continue;
+
+      for (const img of nodeOutput.images) {
+        if (!img?.filename) continue;
+        imageInfos.push({
+          filename: img.filename,
+          subfolder: img.subfolder ?? "",
+          type: img.type ?? "output",
+        });
       }
     }
 
-    return NextResponse.json(
-      {
-        ok: res.ok,
-        status: res.status,
-        jobStatus: status,
-        images,
-        raw: historyJson,
-      },
-      { status: res.ok ? 200 : res.status }
-    );
+    const images = imageInfos.map((img) => ({
+      filename: img.filename,
+      url: `/api/affiliate/click/comfy/image?filename=${encodeURIComponent(
+        img.filename
+      )}&subfolder=${encodeURIComponent(img.subfolder)}&type=${encodeURIComponent(
+        img.type
+      )}`,
+    }));
+
+    return NextResponse.json({
+      ok: true,
+      completed: true,
+      images,
+      rawHistory: entry,
+    });
   } catch (err: any) {
-    console.error("Comfy history error:", err);
+    console.error("Error in comfy result route:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "History lookup failed" },
+      { ok: false, error: err?.message ?? "Unknown error" },
       { status: 500 }
     );
   }
