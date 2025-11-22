@@ -1,11 +1,17 @@
-// app/api/affiliate/click/comfy/route.ts
 import { NextResponse } from "next/server";
 
-const COMFY_URL = "http://127.0.0.1:8188/prompt"; // your Comfy server
+const COMFY_URL = process.env.COMFY_URL!; // <-- pulls from Vercel Environment Variable
 
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => null);
+
+    if (!COMFY_URL) {
+      return NextResponse.json(
+        { ok: false, error: "COMFY_URL is missing on server" },
+        { status: 500 }
+      );
+    }
 
     const comfyRes = await fetch(COMFY_URL, {
       method: "POST",
