@@ -4,16 +4,18 @@ import Link from "next/link";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="max-w-5xl mx-auto px-4 py-16 flex flex-col gap-12">
+    <main className="min-h-screen bg-slate-950 text-slate-100 relative overflow-hidden">
+      {/* Background Stars */}
+      <div className="absolute inset-0 z-0 bg-starry-background"></div>
 
+      <div className="max-w-5xl mx-auto px-4 py-16 flex flex-col gap-12 relative z-10">
         {/* Header Section */}
         <section className="flex flex-col gap-6 text-center">
-          <h1 className="text-4xl sm:text-5xl font-bold text-slate-50">
+          <h1 className="text-4xl sm:text-5xl font-bold text-slate-50 glow-text">
             Cyber Dev Token • $CDT
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl text-slate-300 max-w-2xl mx-auto glow-text">
             The Roundtable for Builders on Solana.
             Create tokens, build communities, and launch your ideas into reality.
           </p>
@@ -22,14 +24,13 @@ export default function HomePage() {
           <div className="mt-6 space-x-4">
             <Link
               href="/meme-launchpad"
-              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition glow-button"
             >
               🚀 Launch a Token Now
             </Link>
-            {/* Corrected the link here */}
             <Link
               href="/comfy"
-              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition glow-button"
             >
               🎨 Generate AI Images for Free
             </Link>
@@ -67,17 +68,17 @@ export default function HomePage() {
 
         {/* New AI Image Generation Section */}
         <section className="bg-slate-900/50 p-10 mt-16 rounded-xl">
-          <h2 className="text-3xl font-semibold text-center text-cyan-300">
+          <h2 className="text-3xl font-semibold text-center text-cyan-300 glow-text">
             Generate AI-Driven Images in Seconds
           </h2>
-          <p className="text-lg text-center text-slate-400 mt-4 max-w-2xl mx-auto">
+          <p className="text-lg text-center text-slate-400 mt-4 max-w-2xl mx-auto glow-text">
             Unlock the power of AI-generated images — absolutely free. Whether you need visuals for your token,
             marketing, or any project, CyberDev provides the tools to create stunning, custom AI images instantly.
           </p>
           <div className="text-center mt-6">
             <Link
               href="/comfy"
-              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition glow-button"
             >
               Start Generating AI Images
             </Link>
