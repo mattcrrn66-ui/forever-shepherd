@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
@@ -62,6 +63,31 @@ export default function HomePage() {
             >
               Enter Dev Hub →
             </Link>
+          </div>
+        </section>
+
+        {/* Image Section: Left Image (1000028629.png) and Right Image (1000028693.jpg) */}
+        <section className="flex flex-col md:flex-row gap-12 items-center mt-10">
+          {/* Left Image */}
+          <div className="relative">
+            <Image
+              src="/1000028629.png" // Path to the left image in /public
+              alt="Left Image"
+              width={500} // Adjust based on your preference
+              height={500} // Adjust based on your preference
+              className="rounded-lg shadow-lg drop-shadow-[0_0_20px_rgba(0,200,255,0.6)]"
+            />
+          </div>
+
+          {/* Right Image */}
+          <div className="relative">
+            <Image
+              src="/1000028693.jpg" // Path to the right image in /public
+              alt="Right Image"
+              width={500} // Adjust based on your preference
+              height={500} // Adjust based on your preference
+              className="rounded-lg shadow-lg drop-shadow-[0_0_20px_rgba(0,200,255,0.6)]"
+            />
           </div>
         </section>
 
