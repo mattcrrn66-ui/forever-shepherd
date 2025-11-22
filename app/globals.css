@@ -27,23 +27,7 @@ body {
   box-shadow: 0 0 10px rgba(0, 255, 255, 1), 0 0 15px rgba(0, 255, 255, 1);
 }
 
-/* Typing Effect (Text Animation) */
-@keyframes typing-text {
-  0% {
-    width: 0;
-  }
-  100% {
-    width: 10ch; /* Adjust based on the text length */
-  }
-}
-
-.animate-typing-text {
-  animation: typing-text 3s steps(10) 1s forwards;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-/* Typing Effect for Left Image */
+/* Typing Effect (Character Animation) */
 @keyframes typing-effect {
   0% {
     opacity: 0;
@@ -59,8 +43,24 @@ body {
   }
 }
 
-.animate-typing {
+.animate-typing-effect {
   animation: typing-effect 2s ease-in-out infinite;
+}
+
+/* Typing Effect for Text on Character Image */
+@keyframes typing-text {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 10ch;
+  }
+}
+
+.animate-typing-text {
+  animation: typing-text 2s steps(10) 1s forwards;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 /* Smooth Floating Effect for Right Image */

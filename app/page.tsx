@@ -39,7 +39,7 @@ export default function HomePage() {
         {/* Image Section: Left Image (1000028629.png) and Right Image (1000028693.jpg) */}
         <section className="flex flex-col md:flex-row gap-12 items-center mt-10">
           {/* Left Image (Character Typing Effect) */}
-          <div className="relative animate-typing">
+          <div className="relative animate-typing-effect">
             <Image
               src="/1000028629.png" // Left image path in /public
               alt="Left Image"
@@ -47,7 +47,6 @@ export default function HomePage() {
               height={500}
               className="rounded-lg shadow-lg drop-shadow-[0_0_20px_rgba(0,200,255,0.6)]"
             />
-            <div className="absolute bottom-5 left-5 text-2xl text-slate-50 glow-text animate-typing-text">Typing...</div>
           </div>
 
           {/* Right Image (Smooth Floating Effect) */}

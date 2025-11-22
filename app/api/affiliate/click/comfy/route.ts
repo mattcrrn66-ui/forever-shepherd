@@ -3,6 +3,28 @@ import { buildCyberDevWorkflow } from "./workflow";
 
 const COMFY_URL = process.env.COMFY_URL;
 
+// List of known NSFW-related keywords
+const NSFW_KEYWORDS = [
+  "sex",
+  "nude",
+  "naked",
+  "boobs",
+  "ass",
+  "thong",
+  "lingerie",
+  "fetish",
+  "porn",
+  "erotic",
+  "explicit",
+  "nsfw",
+  "pornographic",
+];
+
+function isUnsafePrompt(prompt: string): boolean {
+  const p = prompt.toLowerCase();
+  return NSFW_KEYWORDS.some((word) => p.includes(word));
+}
+
 export async function POST(req: NextRequest) {
   try {
     if (!COMFY_URL) {
@@ -17,6 +39,14 @@ export async function POST(req: NextRequest) {
     if (!prompt || typeof prompt !== "string") {
       return NextResponse.json(
         { ok: false, error: "Prompt must be a string" },
+        { status: 400 }
+      );
+    }
+
+    // Check for NSFW content in the prompt
+    if (isUnsafePrompt(prompt)) {
+      return NextResponse.json(
+        { ok: false, error: "NSFW or sexual prompts are not allowed. Please try a different idea." },
         { status: 400 }
       );
     }
