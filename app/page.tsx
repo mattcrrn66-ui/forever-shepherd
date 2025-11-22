@@ -27,7 +27,7 @@ export default function HomePage() {
               🚀 Launch a Token Now
             </Link>
             <Link
-              href="/ai-image-generator"
+              href="/comfy"  {/* Corrected the link here */}
               className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
             >
               🎨 Generate AI Images for Free
@@ -75,7 +75,7 @@ export default function HomePage() {
           </p>
           <div className="text-center mt-6">
             <Link
-              href="/ai-image-generator"
+              href="/comfy"  {/* Corrected the link here */}
               className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
             >
               Start Generating AI Images
