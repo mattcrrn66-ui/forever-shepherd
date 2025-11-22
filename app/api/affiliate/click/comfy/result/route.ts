@@ -4,8 +4,8 @@ function getComfyBaseFromEnv() {
   const raw = (process.env.COMFY_URL ?? "").trim();
   if (!raw) return null;
 
-  // COMFY_URL currently is like: https://xxxx.ngrok-free.dev/prompt
-  // Strip the trailing /prompt so we can call /history/{id}
+  // COMFY_URL is like: https://xxxx.ngrok-free.dev/prompt
+  // Strip the trailing /prompt so we can call /history/{id}.
   return raw.replace(/\/prompt\/?$/i, "");
 }
 
@@ -44,11 +44,10 @@ export async function GET(req: Request) {
     try {
       json = text ? JSON.parse(text) : null;
     } catch {
-      // non-JSON, ignore
+      // non-JSON response – just leave json = null
     }
 
-    // 🔄 Comfy returns 404 while the history isn't ready yet.
-    // Treat that as "still running", NOT as a hard error.
+    // Comfy returns 404 while history isn’t ready yet – treat as in-progress, NOT failure.
     if (comfyRes.status === 404) {
       return NextResponse.json(
         {
@@ -63,7 +62,6 @@ export async function GET(req: Request) {
       );
     }
 
-    // Any other non-OK status is a real error.
     if (!comfyRes.ok) {
       return NextResponse.json(
         {
@@ -76,8 +74,21 @@ export async function GET(req: Request) {
       );
     }
 
-    // Try to extract images from the history.
-    const outputs = json?.outputs || {};
+    // 🔍 Comfy history shape is:
+    // {
+    //   "<prompt_id>": {
+    //     prompt: [...],
+    //     outputs: { "<nodeId>": { images: [...] } },
+    //     status: { completed: true, ... },
+    //     ...
+    //   }
+    // }
+    const keys = json ? Object.keys(json) : [];
+    const record = keys.length > 0 ? json[keys[0]] : null;
+
+    const statusCompleted = !!record?.status?.completed;
+    const outputs = (record?.outputs as any) || {};
+
     const images: { filename: string; url: string }[] = [];
 
     for (const nodeId of Object.keys(outputs)) {
@@ -90,7 +101,7 @@ export async function GET(req: Request) {
 
         if (!filename) continue;
 
-        // Use our image proxy route so the browser doesn't have to hit ngrok directly
+        // Route through our image proxy so browser never hits ngrok directly
         const url = `/api/affiliate/click/comfy/image?filename=${encodeURIComponent(
           filename
         )}&subfolder=${encodeURIComponent(
@@ -101,13 +112,11 @@ export async function GET(req: Request) {
       }
     }
 
-    const completed = images.length > 0;
-
     return NextResponse.json(
       {
         ok: true,
         status: comfyRes.status,
-        completed,
+        completed: statusCompleted,
         images,
         rawHistory: json,
       },
