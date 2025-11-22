@@ -9,7 +9,7 @@ type ImageInfo = {
 
 type ComfyApiResponse = {
   ok: boolean;
-  image?: string; // base64 data URL from /api/comfy
+  image?: string; // base64 data URL from API
   filename?: string;
   images?: ImageInfo[];
   error?: string;
@@ -30,7 +30,8 @@ export default function ComfyTesterPage() {
       setError(null);
       setImages([]);
 
-      const res = await fetch("/api/comfy", {
+      // 🔥 use the real API route
+      const res = await fetch("/api/affiliate/click/comfy", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -38,7 +39,22 @@ export default function ComfyTesterPage() {
         body: JSON.stringify({ prompt }),
       });
 
-      const data: ComfyApiResponse = await res.json();
+      // safer: read text, then try to parse JSON
+      const text = await res.text();
+      let data: ComfyApiResponse | null = null;
+
+      try {
+        data = text ? (JSON.parse(text) as ComfyApiResponse) : null;
+      } catch (e) {
+        console.error("Non-JSON response from Comfy API:", text);
+        setError("Server returned an invalid response. Check logs.");
+        return;
+      }
+
+      if (!data) {
+        setError("Empty response from server.");
+        return;
+      }
 
       if (!res.ok || !data.ok) {
         console.error("Comfy API error:", data);
@@ -79,7 +95,9 @@ export default function ComfyTesterPage() {
           <p className="text-xs uppercase tracking-[0.2em] text-cyan-400">
             Cyber Dev → ComfyUI Generator
           </p>
-          <h1 className="text-3xl md:text-4xl font-semibold">ComfyUI Live Generator</h1>
+          <h1 className="text-3xl md:text-4xl font-semibold">
+            ComfyUI Live Generator
+          </h1>
           <p className="text-sm text-slate-400 max-w-xl">
             Send a prompt from CyberDev to your local ComfyUI (through ngrok),
             then display the generated image directly on this page.
@@ -123,7 +141,10 @@ export default function ComfyTesterPage() {
           {images.length === 0 && !isGenerating && !error && (
             <p className="text-xs text-slate-500">
               No images yet. Enter a prompt and hit{" "}
-              <span className="text-cyan-400 font-medium">Generate via Comfy</span>.
+              <span className="text-cyan-400 font-medium">
+                Generate via Comfy
+              </span>
+              .
             </p>
           )}
 
