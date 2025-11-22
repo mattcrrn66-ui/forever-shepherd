@@ -1,6 +1,7 @@
+// app/api/affiliate/click/comfy/route.ts
 import { NextResponse } from "next/server";
 
-const COMFY_URL = "http://127.0.0.1:8188/prompt";
+const COMFY_URL = "http://127.0.0.1:8188/prompt"; // your Comfy server
 
 export async function POST(req: Request) {
   try {
@@ -8,7 +9,9 @@ export async function POST(req: Request) {
 
     const comfyRes = await fetch(COMFY_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+      },
       body: body ? JSON.stringify(body) : undefined,
     });
 
@@ -32,7 +35,10 @@ export async function POST(req: Request) {
   } catch (err: any) {
     console.error("Comfy API error:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "Comfy generation failed" },
+      {
+        ok: false,
+        error: err?.message || "Comfy generation failed",
+      },
       { status: 500 }
     );
   }
