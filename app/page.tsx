@@ -18,13 +18,19 @@ export default function HomePage() {
             Create tokens, build communities, and launch your ideas into reality.
           </p>
 
-          {/* NEW PRIMARY CTA BUTTON */}
-          <div className="mt-6">
+          {/* Primary CTA Buttons */}
+          <div className="mt-6 space-x-4">
             <Link
               href="/meme-launchpad"
               className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
             >
               🚀 Launch a Token Now
+            </Link>
+            <Link
+              href="/ai-image-generator"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
+            >
+              🎨 Generate AI Images for Free
             </Link>
           </div>
         </section>
@@ -54,6 +60,25 @@ export default function HomePage() {
               className="inline-block mt-4 text-cyan-400 hover:underline"
             >
               Enter Dev Hub →
+            </Link>
+          </div>
+        </section>
+
+        {/* New AI Image Generation Section */}
+        <section className="bg-slate-900/50 p-10 mt-16 rounded-xl">
+          <h2 className="text-3xl font-semibold text-center text-cyan-300">
+            Generate AI-Driven Images in Seconds
+          </h2>
+          <p className="text-lg text-center text-slate-400 mt-4 max-w-2xl mx-auto">
+            Unlock the power of AI-generated images — absolutely free. Whether you need visuals for your token,
+            marketing, or any project, CyberDev provides the tools to create stunning, custom AI images instantly.
+          </p>
+          <div className="text-center mt-6">
+            <Link
+              href="/ai-image-generator"
+              className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
+            >
+              Start Generating AI Images
             </Link>
           </div>
         </section>
