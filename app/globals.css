@@ -11,20 +11,20 @@ body {
   @apply bg-slate-950 text-slate-50 antialiased;
 }
 
-/* Glowing effect for text */
+/* Subtle Glowing effect for text (Reduced blur) */
 .glow-text {
-  text-shadow: 0 0 10px rgba(0, 255, 255, 1), 0 0 20px rgba(0, 255, 255, 1), 0 0 30px rgba(0, 255, 255, 1), 0 0 40px rgba(0, 255, 255, 1), 0 0 50px rgba(0, 255, 255, 1);
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.8), 0 0 10px rgba(0, 255, 255, 0.6), 0 0 15px rgba(0, 255, 255, 0.5);
 }
 
-/* Glowing effect for buttons */
+/* Glowing effect for buttons (with subtle glow) */
 .glow-button {
-  text-shadow: 0 0 10px rgba(0, 255, 255, 1), 0 0 20px rgba(0, 255, 255, 1), 0 0 30px rgba(0, 255, 255, 1);
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.7), 0 0 20px rgba(0, 255, 255, 0.5), 0 0 30px rgba(0, 255, 255, 0.3);
-  transition: all 0.3s ease-in-out;
+  text-shadow: 0 0 5px rgba(0, 255, 255, 0.8), 0 0 10px rgba(0, 255, 255, 0.7), 0 0 15px rgba(0, 255, 255, 0.5);
+  box-shadow: 0 0 5px rgba(0, 255, 255, 0.6), 0 0 10px rgba(0, 255, 255, 0.4);
+  transition: all 0.2s ease-in-out;
 }
 
 .glow-button:hover {
-  box-shadow: 0 0 15px rgba(0, 255, 255, 1), 0 0 25px rgba(0, 255, 255, 1), 0 0 35px rgba(0, 255, 255, 1);
+  box-shadow: 0 0 10px rgba(0, 255, 255, 1), 0 0 15px rgba(0, 255, 255, 1);
 }
 
 /* Starry Background */
