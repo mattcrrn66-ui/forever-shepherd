@@ -27,7 +27,6 @@ export default function HomePage() {
             >
               🚀 Launch a Token Now
             </Link>
-            {/* Corrected the link here */}
             <Link
               href="/comfy"
               className="inline-flex items-center justify-center px-8 py-4 rounded-full bg-cyan-500 text-slate-900 font-semibold text-lg hover:bg-cyan-400 transition"
@@ -69,23 +68,23 @@ export default function HomePage() {
         {/* Image Section: Left Image (1000028629.png) and Right Image (1000028693.jpg) */}
         <section className="flex flex-col md:flex-row gap-12 items-center mt-10">
           {/* Left Image */}
-          <div className="relative">
+          <div className="relative animate-typing-effect">
             <Image
-              src="/1000028629.png" // Path to the left image in /public
+              src="/1000028629.png" // Left image path in /public
               alt="Left Image"
-              width={500} // Adjust based on your preference
-              height={500} // Adjust based on your preference
+              width={500}
+              height={500}
               className="rounded-lg shadow-lg drop-shadow-[0_0_20px_rgba(0,200,255,0.6)]"
             />
           </div>
 
           {/* Right Image */}
-          <div className="relative">
+          <div className="relative animate-move-image">
             <Image
-              src="/1000028693.jpg" // Path to the right image in /public
+              src="/1000028693.jpg" // Right image path in /public
               alt="Right Image"
-              width={500} // Adjust based on your preference
-              height={500} // Adjust based on your preference
+              width={500}
+              height={500}
               className="rounded-lg shadow-lg drop-shadow-[0_0_20px_rgba(0,200,255,0.6)]"
             />
           </div>
