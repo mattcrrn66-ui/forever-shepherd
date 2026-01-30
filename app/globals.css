@@ -5,13 +5,11 @@
 
 /* ---------- THEME (Dark, premium, cyber-calm) ---------- */
 :root {
-  /* base */
   --bg: 10 12 18;          /* deep navy */
   --fg: 234 239 255;       /* near-white */
   --muted: 165 175 205;    /* slate */
   --border: 255 255 255;
 
-  /* brand */
   --brand: 110 231 255;    /* cyan */
   --brand2: 167 139 250;   /* violet */
   --brand3: 34 211 238;    /* teal */
@@ -38,7 +36,7 @@ body {
 .bg-vignette {
   background: radial-gradient(
     1200px 600px at 50% 20%,
-    rgba(0,0,0,0.0) 0%,
+    rgba(0,0,0,0) 0%,
     rgba(0,0,0,0.55) 55%,
     rgba(0,0,0,0.85) 100%
   );
@@ -69,21 +67,33 @@ body {
 /* ---------- COMPONENTS ---------- */
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium
-      ring-1 ring-white/10 transition active:translate-y-[1px];
+    @apply inline-flex items-center justify-center gap-2
+      rounded-xl px-4 py-2 text-sm font-medium
+      ring-1 ring-white/10 transition;
+  }
+
+  .btn:active {
+    transform: translateY(1px);
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, rgba(var(--brand), 0.95), rgba(var(--brand2), 0.80));
+    background: linear-gradient(
+      135deg,
+      rgba(var(--brand), 0.95),
+      rgba(var(--brand2), 0.80)
+    );
     @apply text-black hover:brightness-110;
   }
 
   .btn-ghost {
-    @apply bg-white/5 hover:bg-white/10 text-foreground;
+    @apply bg-white/5 hover:bg-white/10;
+    color: rgb(var(--fg));
   }
 
   .btn-outline {
-    @apply bg-transparent hover:bg-white/5 text-foreground ring-white/15;
+    @apply bg-transparent hover:bg-white/5 ring-1;
+    color: rgb(var(--fg));
+    border-color: rgba(255,255,255,0.15);
   }
 
   .chip {
