@@ -22,15 +22,17 @@ function Card({
       </div>
 
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold">{title}</h3>
+        <h3 className="text-base font-semibold text-white">{title}</h3>
         {tag ? (
-          <span className="text-xs rounded-full bg-white/5 ring-1 ring-white/10 px-2 py-1 text-foreground/70">
+          <span className="text-xs rounded-full bg-white/5 ring-1 ring-white/10 px-2 py-1 text-white/70">
             {tag}
           </span>
         ) : null}
       </div>
-      <p className="mt-2 text-sm text-foreground/70 leading-relaxed">{desc}</p>
-      <div className="mt-4 text-sm text-brand group-hover:text-brand2 transition">
+
+      <p className="mt-2 text-sm text-white/70 leading-relaxed">{desc}</p>
+
+      <div className="mt-4 text-sm text-cyan-400 group-hover:text-violet-400 transition">
         Open →
       </div>
     </Link>
@@ -48,17 +50,18 @@ export default function Page() {
         </div>
 
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 rounded-full bg-white/5 ring-1 ring-white/10 px-3 py-1 text-xs text-foreground/70">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand shadow-glow" />
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/5 ring-1 ring-white/10 px-3 py-1 text-xs text-white/70">
+            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-glow" />
             Forever Shepherd • v1
           </div>
 
-          <h1 className="mt-4 text-4xl md:text-5xl font-semibold tracking-tight">
+          <h1 className="mt-4 text-4xl md:text-5xl font-semibold tracking-tight text-white">
             Forever Shepherd
           </h1>
-          <p className="mt-3 text-base md:text-lg text-foreground/70 leading-relaxed">
-            Guidance that remains. A clean, calm launch surface for your first release — with
-            simple navigation, beautiful dark mode, and room to grow.
+
+          <p className="mt-3 text-base md:text-lg text-white/70 leading-relaxed">
+            Guidance that remains. A calm, focused storefront for the first release —
+            minimal design, premium feel, no distractions.
           </p>
 
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
@@ -73,56 +76,29 @@ export default function Page() {
             </Link>
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-2 text-xs text-foreground/60">
+          <div className="mt-6 flex flex-wrap gap-2 text-xs text-white/60">
             <span className="chip">Dark-first</span>
-            <span className="chip">Fast</span>
             <span className="chip">Minimal</span>
+            <span className="chip">Limited</span>
             <span className="chip">Vercel-ready</span>
           </div>
         </div>
       </section>
 
       {/* Grid */}
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2">
         <Card
           title="First Release"
-          desc="A focused product page with a buy button placeholder and clean visuals."
+          desc="A focused product page with clean visuals and a simple purchase flow."
           href="/first-release"
-          tag="POD"
+          tag="Drop 01"
         />
         <Card
           title="Shipping & Returns"
-          desc="Simple policy layout that looks premium and builds trust."
+          desc="Clear policies designed to build trust and reduce friction."
           href="/shipping"
           tag="Policy"
         />
-        <Card
-          title="Roadmap"
-          desc="Where this is going — phases, drops, and the long arc."
-          href="/roadmap"
-          tag="Plan"
-        />
-      </section>
-
-      {/* CTA */}
-      <section className="rounded-3xl bg-white/[0.04] ring-1 ring-white/10 p-8 md:p-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">Next step</h2>
-            <p className="mt-2 text-foreground/70">
-              Tell me your exact vibe (calm, luxury, tactical, spiritual, street, etc.) and I’ll
-              lock the palette + typography + spacing so it feels like a real brand.
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <Link className="btn btn-primary" href="/directory">
-              Start building
-            </Link>
-            <Link className="btn btn-outline" href="/whitepaper">
-              Read the vision
-            </Link>
-          </div>
-        </div>
       </section>
     </div>
   );
