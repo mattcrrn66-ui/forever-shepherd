@@ -9,7 +9,13 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://example.com"),
 };
 
-function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+function NavLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
   return (
     <Link
       href={href}
@@ -20,7 +26,11 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background text-foreground">
@@ -49,20 +59,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </Link>
 
+            {/* CLEAN NAV */}
             <nav className="hidden items-center gap-1 md:flex">
               <NavLink href="/">Home</NavLink>
-              <NavLink href="/directory">Directory</NavLink>
-              <NavLink href="/dev-hub">Dev Hub</NavLink>
-              <NavLink href="/community">Community</NavLink>
-              <NavLink href="/whitepaper">Whitepaper</NavLink>
-              <NavLink href="/roadmap">Roadmap</NavLink>
+              <NavLink href="/shop">Shop</NavLink>
+              <NavLink href="/shipping">Shipping</NavLink>
+              <NavLink href="/legal">Legal</NavLink>
             </nav>
 
             <div className="flex items-center gap-2">
-              <Link
-                href="/first-release"
-                className="btn btn-primary"
-              >
+              <Link href="/first-release" className="btn btn-primary">
                 First Release
               </Link>
               <Link
@@ -76,7 +82,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
 
         {/* Page */}
-        <main className="mx-auto w-full max-w-6xl px-5 py-10">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-5 py-10">
+          {children}
+        </main>
 
         {/* Footer */}
         <footer className="border-t border-white/10 bg-black/20">
@@ -89,7 +97,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link className="hover:text-foreground transition" href="/privacy">
                 Privacy
               </Link>
-              <a className="hover:text-foreground transition" href="#" aria-disabled>
+              <a
+                className="hover:text-foreground transition"
+                href="#"
+                aria-disabled
+              >
                 Contact
               </a>
             </div>
