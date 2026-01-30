@@ -1,54 +1,39 @@
-import { getProducts } from "@/lib/products"
+import { mockProducts } from "@/lib/mockProducts";
 
-export default async function ShopPage() {
-  const products = await getProducts()
-
+export default function ShopPage() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-      {products.map((p: any) => (
-        <div
-          key={p.id}
-          className="rounded-2xl bg-white/5 ring-1 ring-white/10 overflow-hidden"
-        >
-          <div className="aspect-[4/5] overflow-hidden">
+    <div className="space-y-8">
+      <h1 className="text-3xl font-semibold">Shop</h1>
+
+      <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3">
+        {mockProducts.map((product) => (
+          <div
+            key={product.id}
+            className="rounded-2xl bg-white/5 ring-1 ring-white/10 p-4"
+          >
             <img
-              src={p.image}
-              alt={p.name}
-              className="h-full w-full object-cover"
+              src={product.image}
+              alt={product.name}
+              className="aspect-square w-full rounded-xl object-cover"
             />
-          </div>
 
-          <div className="p-4 space-y-2">
-            {p.tag && (
-              <span className="inline-block text-xs px-2 py-1 rounded-full bg-white/10">
-                {p.tag}
-              </span>
-            )}
+            <div className="mt-3">
+              <h2 className="font-medium">{product.name}</h2>
+              <p className="text-sm text-foreground/70">
+                {product.description}
+              </p>
 
-            <h3 className="text-sm font-medium">{p.name}</h3>
+              <div className="mt-2 font-semibold">
+                ${product.price}
+              </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-semibold">${p.price}</span>
-              {p.compareAt && (
-                <span className="text-sm line-through text-white/40">
-                  ${p.compareAt}
-                </span>
-              )}
+              <button className="btn btn-primary mt-3 w-full">
+                Add to cart
+              </button>
             </div>
-
-            <button
-              disabled={p.status === "sold_out"}
-              className="btn btn-outline w-full mt-2 disabled:opacity-40"
-            >
-              {p.status === "sold_out"
-                ? "Sold Out"
-                : p.status === "preorder"
-                ? "Pre-Order"
-                : "Add to Cart"}
-            </button>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  )
+  );
 }
