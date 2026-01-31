@@ -2,11 +2,11 @@
 import "./globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
+import React from "react";
 
 export const metadata: Metadata = {
   title: "Forever Shepherd",
   description: "Guidance that remains.",
-  metadataBase: new URL("https://example.com"),
 };
 
 function NavLink({
@@ -45,6 +45,7 @@ export default function RootLayout({
         {/* Top Nav */}
         <header className="sticky top-0 z-50 border-b border-white/10 bg-black/25 backdrop-blur-xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+            {/* Logo */}
             <Link href="/" className="group flex items-center gap-3">
               <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 ring-1 ring-white/10">
                 <span className="h-2.5 w-2.5 rounded-full bg-brand shadow-glow" />
@@ -59,18 +60,28 @@ export default function RootLayout({
               </div>
             </Link>
 
-            {/* CLEAN NAV */}
+            {/* MAIN NAV */}
             <nav className="hidden items-center gap-1 md:flex">
               <NavLink href="/">Home</NavLink>
               <NavLink href="/shop">Shop</NavLink>
+              <NavLink href="/cart">Cart</NavLink>
               <NavLink href="/shipping">Shipping</NavLink>
               <NavLink href="/legal">Legal</NavLink>
             </nav>
 
+            {/* RIGHT ACTIONS */}
             <div className="flex items-center gap-2">
               <Link href="/first-release" className="btn btn-primary">
                 First Release
               </Link>
+
+              <Link
+                href="/cart"
+                className="btn btn-ghost hidden sm:inline-flex"
+              >
+                Cart
+              </Link>
+
               <Link
                 href="/shipping"
                 className="btn btn-ghost hidden sm:inline-flex"
@@ -81,7 +92,7 @@ export default function RootLayout({
           </div>
         </header>
 
-        {/* Page */}
+        {/* Page Content */}
         <main className="mx-auto w-full max-w-6xl px-5 py-10">
           {children}
         </main>
@@ -97,13 +108,7 @@ export default function RootLayout({
               <Link className="hover:text-foreground transition" href="/privacy">
                 Privacy
               </Link>
-              <a
-                className="hover:text-foreground transition"
-                href="#"
-                aria-disabled
-              >
-                Contact
-              </a>
+              <span className="opacity-50 cursor-not-allowed">Contact</span>
             </div>
           </div>
         </footer>
