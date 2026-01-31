@@ -1,4 +1,5 @@
 import Link from "next/link";
+import ProductClient from "./product-client";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +41,7 @@ export default async function ProductPage({
   const { id } = await params;
 
   const token = process.env.PRINTIFY_API_TOKEN;
-  const shopId = process.env.PRINTIFY_SHOP_ID || "26310502"; // your shop fallback
+  const shopId = process.env.PRINTIFY_SHOP_ID || "26310502";
 
   if (!token) {
     return (
@@ -57,14 +58,11 @@ export default async function ProductPage({
   }
 
   try {
-    // Printify product details endpoint
     const url = `https://api.printify.com/v1/shops/${shopId}/products/${id}.json`;
 
     const res = await fetch(url, {
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
 
@@ -79,9 +77,7 @@ export default async function ProductPage({
             <div className="mt-2 text-sm text-white/80">
               {res.status} {res.statusText}
             </div>
-            <div className="mt-2 text-xs text-white/70 break-words">
-              URL: {url}
-            </div>
+            <div className="mt-2 text-xs text-white/70 break-words">URL: {url}</div>
           </div>
           <Link className="text-white/70 underline" href="/shop">
             Back to shop
@@ -91,15 +87,37 @@ export default async function ProductPage({
     }
 
     const hero =
-      product.images?.find((i) => i.is_default)?.src || product.images?.[0]?.src || "";
+      product.images?.find((i) => i.is_default)?.src ||
+      product.images?.[0]?.src ||
+      "";
 
+    // IMPORTANT: only show enabled+available variants
     const enabledVariants =
-      product.variants?.filter((v) => v.is_enabled !== false) ?? [];
+      product.variants?.filter(
+        (v) => v.is_enabled !== false && v.is_available !== false
+      ) ?? [];
 
     const cheapest =
       enabledVariants.length > 0
-        ? enabledVariants.reduce((min, v) => (v.price < min.price ? v : min), enabledVariants[0])
+        ? enabledVariants.reduce(
+            (min, v) => (v.price < min.price ? v : min),
+            enabledVariants[0]
+          )
         : undefined;
+
+    // Build a "product" object for the client component (variants include price)
+    const productForClient = {
+      id: product.id,
+      title: product.title,
+      images: product.images ?? [],
+      variants: enabledVariants.map((v) => ({
+        id: v.id,
+        title: v.title,
+        price: v.price,
+        is_enabled: v.is_enabled !== false,
+        is_available: v.is_available !== false,
+      })),
+    };
 
     return (
       <main className="p-6 md:p-10 space-y-6">
@@ -114,7 +132,11 @@ export default async function ProductPage({
             <div className="aspect-square rounded-xl overflow-hidden bg-black/20 ring-1 ring-white/10">
               {hero ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={hero} alt={product.title} className="h-full w-full object-cover" />
+                <img
+                  src={hero}
+                  alt={product.title}
+                  className="h-full w-full object-cover"
+                />
               ) : (
                 <div className="h-full w-full flex items-center justify-center text-white/50">
                   No image
@@ -130,7 +152,11 @@ export default async function ProductPage({
                     className="aspect-square rounded-lg overflow-hidden bg-black/20 ring-1 ring-white/10"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img.src} alt="" className="h-full w-full object-cover" />
+                    <img
+                      src={img.src}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                 ))}
               </div>
@@ -142,13 +168,13 @@ export default async function ProductPage({
 
             {cheapest ? (
               <div className="text-white/90">
-                Starting at <span className="font-semibold">{money(cheapest.price)}</span>
+                Starting at{" "}
+                <span className="font-semibold">{money(cheapest.price)}</span>
               </div>
             ) : (
               <div className="text-white/70">Pricing unavailable</div>
             )}
 
-            {/* Options summary */}
             {product.options?.length ? (
               <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 p-4">
                 <div className="text-white font-medium mb-2">Options</div>
@@ -164,7 +190,7 @@ export default async function ProductPage({
               </div>
             ) : null}
 
-            {/* Variants list (simple) */}
+            {/* READ-ONLY list can stay if you want */}
             {enabledVariants.length ? (
               <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 p-4">
                 <div className="text-white font-medium mb-2">Variants</div>
@@ -182,10 +208,8 @@ export default async function ProductPage({
               </div>
             ) : null}
 
-            <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 p-4 text-white/70 text-sm">
-              Next step: if you want “Add to cart”, we’ll store selected variant + qty in
-              Supabase or localStorage and submit to your `/api/printify/order` on checkout.
-            </div>
+            {/* THIS is the interactive Add-to-Cart box */}
+            <ProductClient product={productForClient} />
           </div>
         </div>
       </main>

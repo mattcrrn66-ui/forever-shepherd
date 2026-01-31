@@ -31,28 +31,22 @@ export function addToCart(item: CartItem) {
     (x) => x.product_id === item.product_id && x.variant_id === item.variant_id
   );
 
-  if (idx >= 0) {
-    cart[idx].quantity += item.quantity;
-  } else {
-    cart.push(item);
-  }
+  if (idx >= 0) cart[idx].quantity += item.quantity;
+  else cart.push(item);
+
   setCart(cart);
 }
 
 export function removeFromCart(product_id: string, variant_id: string) {
-  const cart = getCart().filter(
-    (x) => !(x.product_id === product_id && x.variant_id === variant_id)
-  );
-  setCart(cart);
+  setCart(getCart().filter((x) => !(x.product_id === product_id && x.variant_id === variant_id)));
 }
 
 export function updateQty(product_id: string, variant_id: string, quantity: number) {
-  const cart = getCart().map((x) =>
-    x.product_id === product_id && x.variant_id === variant_id
-      ? { ...x, quantity }
-      : x
+  setCart(
+    getCart().map((x) =>
+      x.product_id === product_id && x.variant_id === variant_id ? { ...x, quantity } : x
+    )
   );
-  setCart(cart);
 }
 
 export function clearCart() {
