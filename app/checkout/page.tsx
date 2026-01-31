@@ -24,11 +24,10 @@ export default function CheckoutPage() {
     setItems(getCart());
   }, []);
 
-  async function placeOrder() {
+  async function payNow() {
     setMsg("");
     if (!items.length) return setMsg("Cart is empty.");
 
-    // required fields
     const required = ["first_name", "last_name", "address1", "city", "region", "country", "zip"] as const;
     for (const k of required) {
       if (!form[k].trim()) return setMsg(`Missing ${k.replace("_", " ")}`);
@@ -36,42 +35,23 @@ export default function CheckoutPage() {
 
     setLoading(true);
     try {
-      const payload = {
-        label: "Forever Shepherd Order",
-        send_to_production: true, // set false if you want test mode
-        address_to: {
-          first_name: form.first_name,
-          last_name: form.last_name,
-          address1: form.address1,
-          city: form.city,
-          region: form.region,
-          country: form.country,
-          zip: form.zip,
-          ...(form.phone ? { phone: form.phone } : {}),
-        },
-        line_items: items.map((i) => ({
-          product_id: i.product_id,
-          variant_id: i.variant_id,
-          quantity: i.quantity,
-        })),
-      };
-
-      // IMPORTANT: your order route is /api/printify/order (based on what you've shown)
-      const res = await fetch("/api/printify/order", {
+      // Step 1: create Stripe checkout session
+      const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          items,
+          shipping: form,
+        }),
       });
 
       const json = await res.json().catch(() => null);
-
-      if (!res.ok || !json?.ok) {
-        return setMsg(`Order failed: ${json?.error || res.statusText}`);
+      if (!res.ok || !json?.url) {
+        return setMsg(`Stripe failed: ${json?.error || res.statusText}`);
       }
 
-      clearCart();
-      setItems([]);
-      setMsg("Order created ✅ (check Printify Orders)");
+      // Redirect to Stripe hosted checkout
+      window.location.href = json.url;
     } catch (e: any) {
       setMsg(e?.message ?? "Checkout crashed");
     } finally {
@@ -129,13 +109,17 @@ export default function CheckoutPage() {
 
             <button
               disabled={loading}
-              onClick={placeOrder}
+              onClick={payNow}
               className="w-full rounded-xl bg-white text-black font-semibold py-2 hover:opacity-90 transition disabled:opacity-60"
             >
-              {loading ? "Placing order..." : "Place Order"}
+              {loading ? "Redirecting to Stripe..." : "Pay with Card"}
             </button>
 
             {msg ? <div className="text-sm text-white/80">{msg}</div> : null}
+
+            <p className="text-xs text-white/50">
+              You’ll be redirected to Stripe to pay. After payment, we’ll create your Printify order.
+            </p>
           </div>
 
           <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 p-4">
@@ -149,6 +133,13 @@ export default function CheckoutPage() {
                   <div>${((i.price_cents * i.quantity) / 100).toFixed(2)}</div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-4 flex justify-between text-white/80">
+              <div>Total</div>
+              <div className="text-white font-semibold">
+                ${(items.reduce((s, i) => s + i.price_cents * i.quantity, 0) / 100).toFixed(2)}
+              </div>
             </div>
           </div>
         </div>
