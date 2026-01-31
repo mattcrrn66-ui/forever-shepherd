@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { addToCart } from "@/lib/cart";
 
@@ -15,6 +15,10 @@ type Variant = {
 type Image = { src: string; is_default?: boolean };
 
 export default function ProductClient({ product }: { product: any }) {
+  useEffect(() => {
+    console.log("FS ProductClient LIVE ✅");
+  }, []);
+
   const variants: Variant[] = product?.variants ?? [];
   const images: Image[] = product?.images ?? [];
 
@@ -52,7 +56,9 @@ export default function ProductClient({ product }: { product: any }) {
   return (
     <div className="rounded-2xl bg-white/[0.04] ring-1 ring-white/10 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <div className="text-white font-medium">Order</div>
+        <div className="text-white font-medium">
+          Order <span className="text-xs text-green-400 ml-2">CLIENT ACTIVE ✅</span>
+        </div>
         <Link href="/cart" className="text-sm text-white/70 underline">
           View cart
         </Link>
@@ -68,7 +74,7 @@ export default function ProductClient({ product }: { product: any }) {
               <button
                 key={v.id}
                 onClick={() => setVariantId(v.id)}
-                className={`rounded-xl px-3 py-2 text-sm ring-1 transition ${
+                className={`relative z-10 rounded-xl px-3 py-2 text-sm ring-1 transition ${
                   active
                     ? "bg-white text-black ring-white"
                     : "bg-black/30 text-white ring-white/10 hover:ring-white/30"
@@ -90,7 +96,7 @@ export default function ProductClient({ product }: { product: any }) {
           type="number"
           min={1}
           max={20}
-          className="w-full rounded-xl bg-black/30 ring-1 ring-white/10 px-3 py-2 text-white"
+          className="relative z-10 w-full rounded-xl bg-black/30 ring-1 ring-white/10 px-3 py-2 text-white"
           value={qty}
           onChange={(e) => setQty(Math.max(1, Number(e.target.value || 1)))}
         />
@@ -99,7 +105,7 @@ export default function ProductClient({ product }: { product: any }) {
       <button
         onClick={onAdd}
         disabled={!selected}
-        className="w-full rounded-xl bg-white text-black font-semibold py-2 hover:opacity-90 transition disabled:opacity-60"
+        className="relative z-10 w-full rounded-xl bg-white text-black font-semibold py-2 hover:opacity-90 transition disabled:opacity-60"
       >
         Add to Cart
       </button>
