@@ -41,12 +41,12 @@ export async function POST(req) {
 
     const session = event.data.object;
 
-    // Safety: ensure it’s paid
+    // Ensure payment succeeded
     if (session.payment_status !== "paid") {
       return new Response("Not paid", { status: 200 });
     }
 
-    // Prevent duplicates
+    // Prevent duplicate processing
     if (processed.has(session.id)) {
       return new Response("Already processed", { status: 200 });
     }
@@ -63,15 +63,14 @@ export async function POST(req) {
       throw new Error("Invalid cart metadata JSON");
     }
 
-    // ✅ IMPORTANT: Your /api/printify/order expects line_items with:
-    // [{ product_id, variant_id, quantity }]
+    // Build Printify line items
     const line_items = cart.map((it) => ({
       product_id: String(it.product_id),
       variant_id: String(it.variant_id),
       quantity: Number(it.quantity),
     }));
 
-    // Grab address + buyer details from Stripe
+    // Address from Stripe
     const details = session.customer_details || {};
     const addr = details.address || {};
     const nameParts = splitName(details.name);
@@ -89,18 +88,18 @@ export async function POST(req) {
       country: addr.country || "US",
     };
 
-    // ✅ IMPORTANT FIX: Call Printify route on the SAME host/port that received the webhook
-    const host = req.headers.get("host"); // e.g. localhost:3000
+    // Call Printify order endpoint on same host
+    const host = req.headers.get("host");
     const url = `http://${host}/api/printify/order`;
 
     const resp = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        line_items,                 // ✅ matches Printify route
+        line_items,
         address_to,
-        send_to_production: false,  // ✅ safe launch mode
-        external_id: session.id,    // ✅ matches Printify route
+        send_to_production: true,   // ✅ LIVE MODE ENABLED
+        external_id: session.id,
       }),
     });
 
