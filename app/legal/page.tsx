@@ -1,17 +1,14 @@
-// app/page.tsx
+// app/legal/page.tsx
 import Link from "next/link";
 
-function Card({
-  title,
-  desc,
-  href,
-  tag,
-}: {
+type CardProps = {
   title: string;
   desc: string;
   href: string;
   tag?: string;
-}) {
+};
+
+function Card({ title, desc, href, tag }: CardProps) {
   return (
     <Link
       href={href}
@@ -52,53 +49,81 @@ export default function Page() {
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/5 ring-1 ring-white/10 px-3 py-1 text-xs text-white/70">
             <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-glow" />
-            Forever Shepherd • v1
+            Legal • Policies
           </div>
 
           <h1 className="mt-4 text-4xl md:text-5xl font-semibold tracking-tight text-white">
-            Forever Shepherd
+            Legal / Policies
           </h1>
 
           <p className="mt-3 text-base md:text-lg text-white/70 leading-relaxed">
-            Guidance that remains. A calm, focused storefront for the first release —
-            minimal design, premium feel, no distractions.
+            The basics that protect you and set clear expectations: terms, privacy, returns,
+            and shipping details.
           </p>
 
           <div className="mt-6 flex flex-col sm:flex-row gap-3">
-            <Link href="/first-release" className="btn btn-primary">
-              First Release
+            <Link href="/" className="btn btn-ghost">
+              Back Home
             </Link>
-            <Link href="/shipping" className="btn btn-ghost">
+            <Link href="/shipping" className="btn btn-outline">
               Shipping & Returns
             </Link>
-            <Link href="/legal" className="btn btn-outline">
-              Legal / Policies
-            </Link>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-2 text-xs text-white/60">
-            <span className="chip">Dark-first</span>
-            <span className="chip">Minimal</span>
-            <span className="chip">Limited</span>
-            <span className="chip">Vercel-ready</span>
           </div>
         </div>
       </section>
 
-      {/* Grid */}
+      {/* Cards */}
       <section className="grid gap-4 md:grid-cols-2">
         <Card
-          title="First Release"
-          desc="A focused product page with clean visuals and a simple purchase flow."
-          href="/first-release"
-          tag="Drop 01"
-        />
-        <Card
           title="Shipping & Returns"
-          desc="Clear policies designed to build trust and reduce friction."
+          desc="Returns, exchanges, delivery windows, and what happens if something arrives damaged."
           href="/shipping"
           tag="Policy"
         />
+        <Card
+          title="Back to Shop"
+          desc="Return to the storefront."
+          href="/shop"
+          tag="Store"
+        />
+      </section>
+
+      {/* Policy Content */}
+      <section className="rounded-3xl bg-white/[0.04] ring-1 ring-white/10 p-6 md:p-8 text-white/80 space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-white">Terms of Service</h2>
+          <p className="text-sm leading-relaxed text-white/70">
+            By purchasing from Forever Shepherd, you agree to our policies regarding ordering,
+            pricing, fulfillment, and communications. We reserve the right to refuse service
+            in cases of suspected fraud or abuse.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-white">Privacy Policy</h2>
+          <p className="text-sm leading-relaxed text-white/70">
+            We only collect the information needed to process your order (name, shipping address,
+            email, and optional phone). Payment details are processed by Stripe and are not stored
+            on our servers. We do not sell your personal information.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-white">Refunds & Chargebacks</h2>
+          <p className="text-sm leading-relaxed text-white/70">
+            If there’s an issue with your order (wrong item, damage, or fulfillment error),
+            contact us and we’ll make it right. Unresolved chargebacks may result in account
+            restrictions.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-xl font-semibold text-white">Contact</h2>
+          <p className="text-sm leading-relaxed text-white/70">
+            Questions? Reach out via the contact method listed on the site or the email provided
+            on your order receipt.
+          </p>
+        </div>
       </section>
     </div>
   );
