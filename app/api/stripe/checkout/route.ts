@@ -3,14 +3,20 @@ import Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20",
-});
+// ✅ FIX: remove apiVersion to avoid TS mismatch
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { items, shipping } = body || {};
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return NextResponse.json(
+        { error: "Missing STRIPE_SECRET_KEY env var" },
+        { status: 500 }
+      );
+    }
 
     if (!Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: "Missing cart items" }, { status: 400 });
@@ -22,10 +28,10 @@ export async function POST(req: Request) {
 
     const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = items.map(
       (i: any) => ({
-        quantity: i.quantity,
+        quantity: Number(i.quantity || 1),
         price_data: {
           currency: "usd",
-          unit_amount: i.price_cents,
+          unit_amount: Number(i.price_cents || 0),
           product_data: {
             name: `${i.title} (${i.variant_title})`,
             images: i.image ? [i.image] : undefined,
@@ -43,12 +49,15 @@ export async function POST(req: Request) {
       cancel_url: `${siteUrl}/cart`,
       metadata: {
         cart: JSON.stringify(items),
-        shipping: JSON.stringify(shipping),
+        shipping: JSON.stringify(shipping || {}),
       },
     });
 
     return NextResponse.json({ url: session.url });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Stripe error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message ?? "Stripe error" },
+      { status: 500 }
+    );
   }
 }
