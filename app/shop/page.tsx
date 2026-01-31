@@ -10,7 +10,7 @@ type PrintifyProduct = {
 };
 
 export default async function ShopPage() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/printify/products`, {
+  const res = await fetch("/api/printify/products", {
     cache: "no-store",
   });
 
