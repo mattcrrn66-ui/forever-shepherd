@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 
-export const AUTOWORKER_CAPABILITY_PUBLIC_KEY_B64 = "MCowBQYDK2VwAyEA1HB4GLfj63y4o9rvHN9Ud+lWW9pFfRQaev+VX74x028=";
+export const AUTOWORKER_CAPABILITY_PUBLIC_KEY_B64 = "MCowBQYDK2VwAyEAPFIcKXlwHYvmjItmHwzuTZ0X2Tr7q2qX+ZrvbIshJIQ=";
 const EXPECTED_ISSUER = "autonomous-worker";
 const EXPECTED_AUDIENCE = "forever-shepherd";
 const EXPECTED_ACTION = "printify.upload_url";
