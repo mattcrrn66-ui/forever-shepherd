@@ -118,9 +118,9 @@ export default function DigitalHumanPreview() {
         ))}
       </nav>
 
-      <div style={styles.layout}>
-        <section style={styles.stage}>
-          <div style={styles.spot}>
+      <div className="dh-layout" style={styles.layout}>
+        <section className="dh-stage" style={styles.stage}>
+          <div className="dh-spot" style={styles.spot}>
             <div style={styles.avatarGlow} />
             <div style={styles.avatar}>{active.initials}</div>
             <div style={styles.label}>
@@ -150,7 +150,7 @@ export default function DigitalHumanPreview() {
             </section>
           )}
 
-          <div style={styles.composer}>
+          <div className="dh-composer" style={styles.composer}>
             <input
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
